@@ -25,6 +25,22 @@ resource "snowflake_grant_account_role" "analyst_inherits_transformer" {
   parent_role_name = snowflake_account_role.analyst_role.name
 }
 
+# Grant all custom functional roles to system SYSADMIN role
+resource "snowflake_grant_account_role" "loader_to_sysadmin" {
+  role_name        = snowflake_account_role.loader_role.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "transformer_to_sysadmin" {
+  role_name        = snowflake_account_role.transformer_role.name
+  parent_role_name = "SYSADMIN"
+}
+
+resource "snowflake_grant_account_role" "analyst_to_sysadmin" {
+  role_name        = snowflake_account_role.analyst_role.name
+  parent_role_name = "SYSADMIN"
+}
+
 # ── DATABASE GRANTS ───────────────────────────────────────────────────────────────
 # By referencing var.db_name (which comes from module.snowflake_foundation.database_name),
 # Terraform knows to revoke these grants BEFORE the database is destroyed.
