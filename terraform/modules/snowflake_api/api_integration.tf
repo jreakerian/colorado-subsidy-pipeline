@@ -9,7 +9,9 @@ resource "snowflake_api_integration" "geoapify_integration" {
   comment              = "API integration for Geoapify geocoding service"
 }
 
-# External function for geocoding
+# External function for geocoding.
+# depends_on: the database and schema must exist before Snowflake will accept a
+# CREATE EXTERNAL FUNCTION statement, even though they are passed as string vars.
 resource "snowflake_external_function" "geocode_address" {
   name                      = "GEOCODE_ADDRESS"
   database                  = var.database_name
