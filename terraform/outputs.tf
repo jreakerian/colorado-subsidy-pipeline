@@ -25,8 +25,9 @@ output "general_purpose_bucket_name" {
 }
 
 output "snowflake_external_id" {
-  description = "The AWS_EXTERNAL_ID for Snowflake DESCRIBE INTEGRATION"
-  value       = module.aws_infra.snowflake_external_id
+  description = "The real Snowflake-generated AWS External ID (from DESCRIBE INTEGRATION)"
+  value       = module.snowflake_foundation.external_id
+  sensitive   = true
 }
 
 # ── Snowflake Foundation outputs ──────────────────────────────────────────────────
