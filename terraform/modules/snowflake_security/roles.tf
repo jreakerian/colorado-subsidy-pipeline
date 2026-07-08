@@ -158,7 +158,11 @@ resource "snowflake_grant_privileges_to_account_role" "loader_csv" {
     object_type = "FILE FORMAT"
     object_name = "\"${var.db_name}\".\"${var.raw_schema_name}\".\"${var.csv_file_format_name}\""
   }
-  depends_on = [snowflake_grant_privileges_to_account_role.loader_raw]
+  depends_on = [
+    snowflake_grant_privileges_to_account_role.loader_raw,
+    # File format must exist before Snowflake accepts the grant
+    terraform_data.csv_format_guard,
+  ]
 }
 
 resource "snowflake_grant_privileges_to_account_role" "transformer_csv" {
@@ -168,7 +172,10 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_csv" {
     object_type = "FILE FORMAT"
     object_name = "\"${var.db_name}\".\"${var.raw_schema_name}\".\"${var.csv_file_format_name}\""
   }
-  depends_on = [snowflake_grant_privileges_to_account_role.transformer_raw]
+  depends_on = [
+    snowflake_grant_privileges_to_account_role.transformer_raw,
+    terraform_data.csv_format_guard,
+  ]
 }
 
 resource "snowflake_grant_privileges_to_account_role" "transformer_parquet" {
@@ -178,5 +185,19 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_parquet" {
     object_type = "FILE FORMAT"
     object_name = "\"${var.db_name}\".\"${var.raw_schema_name}\".\"${var.parquet_file_format_name}\""
   }
-  depends_on = [snowflake_grant_privileges_to_account_role.transformer_raw]
+  depends_on = [
+    snowflake_grant_privileges_to_account_role.transformer_raw,
+    terraform_data.parquet_format_guard,
+  ]
+}
+
+# Sentinel resources: wrap file format name vars so cross-module depends_on can
+# reference them as concrete DAG nodes. Prevents grants from running before the
+# file format objects are fully created in Snowflake.
+resource "terraform_data" "csv_format_guard" {
+  input = var.csv_file_format_name
+}
+
+resource "terraform_data" "parquet_format_guard" {
+  input = var.parquet_file_format_name
 }
