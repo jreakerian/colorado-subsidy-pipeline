@@ -14,6 +14,12 @@ resource "aws_s3tables_table_bucket" "data_lake" {
   }
 }
 
+# Raw namespace — unprocessed Iceberg tables
+resource "aws_s3tables_namespace" "raw" {
+  table_bucket_arn = aws_s3tables_table_bucket.data_lake.arn
+  namespace        = "raw"
+}
+
 # Silver namespace — cleaned/validated Iceberg tables
 resource "aws_s3tables_namespace" "silver" {
   table_bucket_arn = aws_s3tables_table_bucket.data_lake.arn
