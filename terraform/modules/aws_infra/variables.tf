@@ -30,3 +30,9 @@ variable "snowflake_external_id" {
   type        = string
   default     = "0000"
 }
+
+variable "snowflake_external_id_prefix" {
+  description = "Wildcard prefix for sts:ExternalId condition (e.g. 'VQB01613_SFCRole=2_*'). Allows all Snowflake integrations sharing this role to assume it. Derive from any integration's external ID by keeping everything up to and including the second underscore after 'SFCRole='."
+  type        = string
+  default     = "0000*"
+}

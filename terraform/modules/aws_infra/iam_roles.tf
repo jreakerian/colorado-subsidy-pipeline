@@ -76,7 +76,15 @@ resource "aws_iam_policy" "lakehouse_rw_policy" {
   })
 }
 
-# Shared IAM Role — assumed by Snowflake for storage integration, external volume, and API integration
+# Shared IAM Role — assumed by Snowflake for storage integration, external volume, and API integration.
+#
+# EXTERNAL ID STRATEGY:
+#   Snowflake generates a UNIQUE external ID per integration object (storage integration,
+#   external volume, API integration). Because all three share this single IAM role, we
+#   cannot use StringEquals with a single ID. Instead we use StringLike with the common
+#   Snowflake-account-scoped prefix (e.g. "VQB01613_SFCRole=2_*"). This is the pattern
+#   Snowflake explicitly documents for shared-role setups.
+#   See: https://docs.snowflake.com/en/user-guide/data-load-s3-config-storage-integration
 resource "aws_iam_role" "snowflake_role" {
   name = "SnowflakeIntegrationRole-${var.project_name}-${var.environment}"
 
@@ -90,8 +98,11 @@ resource "aws_iam_role" "snowflake_role" {
         }
         Action = "sts:AssumeRole"
         Condition = {
-          StringEquals = {
-            "sts:ExternalId" = var.snowflake_external_id
+          # StringLike with wildcard suffix allows ALL Snowflake integrations that share
+          # this role (storage integration, external volume, API integration) to assume it.
+          # Each integration gets a unique suffix; the prefix is stable per Snowflake account.
+          StringLike = {
+            "sts:ExternalId" = var.snowflake_external_id_prefix
           }
         }
       }

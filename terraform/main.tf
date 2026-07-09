@@ -45,12 +45,13 @@ data "aws_caller_identity" "current" {}
 module "aws_infra" {
   source = "./modules/aws_infra"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  lakehouse_bucket_name  = var.lakehouse_bucket_name
-  aws_region             = var.aws_region
-  snowflake_iam_user_arn = var.snowflake_iam_user_arn
-  snowflake_external_id  = var.snowflake_external_id
+  project_name              = var.project_name
+  environment               = var.environment
+  lakehouse_bucket_name     = var.lakehouse_bucket_name
+  aws_region                = var.aws_region
+  snowflake_iam_user_arn    = var.snowflake_iam_user_arn
+  snowflake_external_id     = var.snowflake_external_id
+  snowflake_external_id_prefix = var.snowflake_external_id_prefix
 }
 
 # ── Snowflake Foundation ──────────────────────────────────────────────────────────

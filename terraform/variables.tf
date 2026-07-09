@@ -105,6 +105,13 @@ variable "snowflake_external_id" {
   default     = "0000"
 }
 
+variable "snowflake_external_id_prefix" {
+  description = "Wildcard prefix for sts:ExternalId IAM condition (e.g. 'VQB01613_SFCRole=2_*'). Covers all Snowflake integrations sharing this role. Stable for the lifetime of the Snowflake account."
+  type        = string
+  default     = "0000*"
+}
+
+
 # ── Service account passwords ─────────────────────────────────────────────────────
 variable "airflow_service_password" {
   description = "Password for the Airflow service user in Snowflake."
