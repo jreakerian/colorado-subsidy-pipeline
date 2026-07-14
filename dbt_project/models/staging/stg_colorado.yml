@@ -1,0 +1,75 @@
+version: 2
+
+# Staging model tests — applied after cleaning/typing, not on raw sources.
+# Seeds config lives in dbt_project/seeds/schema.yml.
+
+models:
+  - name: stg_colorado_business_entities
+    description: "Cleaned business entity registrations — active Colorado entities only."
+    columns:
+      - name: entity_id
+        description: "Unique identifier for the business entity"
+        tests: [not_null, unique]
+      - name: entity_name
+        tests: [not_null]
+      - name: principal_state
+        tests: [not_null]
+      - name: entity_form_date
+        tests: [not_null]
+
+  - name: stg_colorado_county_coordinates
+    description: "County centroid coordinates — one row per county."
+    columns:
+      - name: county
+        tests: [not_null, unique]
+      - name: cent_lat
+        tests: [not_null]
+      - name: cent_long
+        tests: [not_null]
+
+  - name: stg_colorado_crimes_1997_2015
+    description: "Standardised crime incident records for 1997-2015."
+    columns:
+      - name: agency_name
+        tests: [not_null]
+      - name: county_name
+        tests: [not_null]
+      - name: incident_date
+        tests: [not_null]
+      - name: offense_category_name
+        tests: [not_null]
+
+  - name: stg_colorado_crimes_2016_2020
+    description: "Standardised crime incident records for 2016-2020."
+    columns:
+      - name: agency_name
+        tests: [not_null]
+      - name: county_name
+        tests: [not_null]
+      - name: incident_date
+        tests: [not_null]
+      - name: offense_category_name
+        tests: [not_null]
+
+  - name: stg_colorado_income
+    description: "Cleaned county-level personal income data for Colorado."
+    columns:
+      - name: county
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: income
+        tests: [not_null]
+
+  - name: stg_colorado_population
+    description: "Cleaned county-level population projections."
+    columns:
+      - name: county
+        tests: [not_null]
+      - name: year
+        tests: [not_null]
+      - name: total_population
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
