@@ -15,14 +15,14 @@ cleaned as (
     agency_name,
     agency_type_name,
     city_name,
-    primary_county as county_name,
-    incident_date,
-    incident_hour,
+    primary_county                        as county_name,
+    cast(incident_date as date)           as incident_date,
+    cast(incident_hour as integer)        as incident_hour,
     offense_name,
     crime_against,
     offense_category_name,
-    age_num,
-    '1997_2015' as source_period
+    cast(age_num as integer)              as age_num,
+    '1997_2015'                           as source_period
   from source
 )
 
