@@ -12,16 +12,16 @@ with source as (
 
 cleaned as (
   select
-    pub_agency_name as agency_name,
+    pub_agency_name                       as agency_name,
     county_name,
-    incident_date,
-    incident_hour,
+    cast(incident_date as date)           as incident_date,
+    cast(incident_hour as integer)        as incident_hour,
     offense_name,
     crime_against,
     offense_category_name,
     offense_group,
-    age_num,
-    '2016_2020' as source_period
+    cast(age_num as integer)              as age_num,
+    '2016_2020'                           as source_period
   from source
 )
 
