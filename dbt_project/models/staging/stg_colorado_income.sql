@@ -12,11 +12,11 @@ with source as (
 
 cleaned as (
   select
-    statename,
-    areaname as county,
-    periodyear as year,
-    inctype,
-    incdesc,
+    statename   as state_name,
+    areaname    as county,
+    periodyear  as year,
+    inctype     as income_type_code,
+    incdesc     as income_description,
     income,
     population,
     case 
