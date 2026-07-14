@@ -15,11 +15,11 @@ cleaned as (
     county,
     year,
     age,
-    malepopulation,
-    femalepopulation,
-    totalpopulation,
-    datatype,
-    fipscode
+    malepopulation   as male_population,
+    femalepopulation as female_population,
+    totalpopulation  as total_population,
+    datatype         as data_type,
+    fipscode         as fips_code
   from source
   where county is not null
     and year between {{ var('start_date')[:4] | int }} and {{ var('end_date')[:4] | int }}
