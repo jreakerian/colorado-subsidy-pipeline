@@ -23,8 +23,8 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 
 vars:
-  start_date: '1997-01-01'
-  end_date: '2020-12-31'
+  start_date: '01-01-1997'
+  end_date: '12-31-2020'
   crime_categories:
     - 'Destruction/Damage/Vandalism of Property'
     - 'Burglary/Breaking & Entering'
@@ -62,7 +62,6 @@ models:
     
 seeds:
   colorado_subsidy_pipeline:
-    +schema: raw
     +tags: ['seed']
     colorado_city_county_zip:
       +column_types:
