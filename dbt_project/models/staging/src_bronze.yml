@@ -1,8 +1,6 @@
 version: 2
 
-# Source declarations only — no tests here.
-# Tests belong on staging models (see stg_colorado.yml) where data has
-# already been cleaned and typed, preventing spurious failures from raw data.
+# Source declarations only
 
 sources:
   - name: bronze
