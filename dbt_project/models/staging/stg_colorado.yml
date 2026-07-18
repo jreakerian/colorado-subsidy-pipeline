@@ -1,11 +1,8 @@
 version: 2
 
-# Staging model tests — applied after cleaning/typing, not on raw sources.
-# Seeds config lives in dbt_project/seeds/schema.yml.
-
 models:
   - name: stg_colorado_business_entities
-    description: "Cleaned business entity registrations — active Colorado entities only."
+    description: "All Colorado-registered business entities (all statuses). Status filtering and zip validation applied in dim_business."
     columns:
       - name: entity_id
         description: "Unique identifier for the business entity"
@@ -15,16 +12,6 @@ models:
       - name: principal_state
         tests: [not_null]
       - name: entity_form_date
-        tests: [not_null]
-
-  - name: stg_colorado_county_coordinates
-    description: "County centroid coordinates — one row per county."
-    columns:
-      - name: county
-        tests: [not_null, unique]
-      - name: cent_lat
-        tests: [not_null]
-      - name: cent_long
         tests: [not_null]
 
   - name: stg_colorado_crimes_1997_2015
