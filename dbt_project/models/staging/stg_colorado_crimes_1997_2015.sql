@@ -16,7 +16,7 @@ cleaned as (
     agency_type_name,
     city_name,
     primary_county                        as county_name,
-    cast(incident_date as date)           as incident_date,
+    cast(try_to_date(incident_date, 'MM/DD/YYYY') as date)          as incident_date,
     cast(incident_hour as integer)        as incident_hour,
     offense_name,
     crime_against,
