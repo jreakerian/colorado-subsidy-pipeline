@@ -12,17 +12,16 @@ with source as (
 
 cleaned as (
   select
-    county,
-    year,
-    age,
-    malepopulation   as male_population,
-    femalepopulation as female_population,
-    totalpopulation  as total_population,
-    datatype         as data_type,
-    fipscode         as fips_code
+    cast(county as string) as county,
+    cast(year as integer) as year,
+    cast(age as integer) as age,
+    cast(try_to_number(replace(malepopulation, ',', '')) as integer)   as male_population,
+    cast(try_to_number(replace(femalepopulation, ',', '')) as integer) as female_population,
+    cast(try_to_number(replace(totalpopulation, ',', '')) as integer)  as total_population,
+    cast(datatype as string)         as data_type,
+    cast(fipscode as integer)         as fips_code
   from source
-  where county is not null
-    and year between {{ var('start_date')[:4] | int }} and {{ var('end_date')[:4] | int }}
+  where county is not null   -- structural: exclude rows with no geographic identifier
 )
 
 select * from cleaned
