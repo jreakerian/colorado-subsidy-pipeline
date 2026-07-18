@@ -18,7 +18,7 @@ with income as (
 population as (
   -- Year-range filter
   select * from {{ ref('stg_colorado_population') }}
-  where year between {{ var('start_date')[:4] | int }} and {{ var('end_date')[:4] | int }}
+  where year between {{ var('start_date')[-4:] | int }} and {{ var('end_date')[-4:] | int }}
 ),
 
 income_typed as (
@@ -34,7 +34,7 @@ income_typed as (
       else 'Unknown'
     end                                         as income_type
   from income
-  where year between {{ var('start_date')[:4] | int }} and {{ var('end_date')[:4] | int }}
+  where year between {{ var('start_date')[-4:] | int }} and {{ var('end_date')[-4:] | int }}
     and income is not null
 ),
 
