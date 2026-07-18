@@ -117,6 +117,8 @@ select
   p.population_growth_pct
 from income_pivoted i
 left join population_yoy p
-  on lower(trim(i.county)) = lower(trim(p.county))
+  -- normalize_county strips ', CO' / 'County' suffixes and lowercases both sides
+  -- so 'Adams, CO' (income) matches 'ADAMS' (population) reliably
+  on {{ normalize_county('i.county') }} = {{ normalize_county('p.county') }}
   and i.year = p.year
 where i.county not in ('Colorado', 'United States')  -- exclude state/national rollups
