@@ -61,6 +61,46 @@ population_agg as (
     sum(female_population) as female_population
   from population
   group by county, year
+),
+
+-- YoY population change: computed here once so the fact table is a thin wrapper.
+-- LAG() over (county, year) gives the prior year's total population.
+-- NULLIF guards against division by zero on the first year per county.
+population_yoy as (
+  select
+    county,
+    year,
+    total_population,
+    male_population,
+    female_population,
+    lag(total_population) over (
+      partition by county
+      order by year
+    )                                                               as prior_year_population,
+    total_population
+      - lag(total_population) over (
+          partition by county
+          order by year
+        )                                                           as population_yoy_change,
+    round(
+      (
+        total_population
+        - lag(total_population) over (
+            partition by county
+            order by year
+          )
+      )
+      / nullif(
+          lag(total_population) over (
+            partition by county
+            order by year
+          ),
+          0
+        )
+      * 100,
+      4
+    )                                                               as population_growth_pct
+  from population_agg
 )
 
 select
@@ -69,11 +109,14 @@ select
   i.median_household_income,
   i.per_capita_income,
   i.total_personal_income,
-  coalesce(p.total_population, i.reported_population) as total_population,
+  coalesce(p.total_population, i.reported_population)   as total_population,
   p.male_population,
-  p.female_population
+  p.female_population,
+  -- NULL on the first year per county (no prior year to compare against)
+  p.population_yoy_change,
+  p.population_growth_pct
 from income_pivoted i
-left join population_agg p
+left join population_yoy p
   on lower(trim(i.county)) = lower(trim(p.county))
   and i.year = p.year
 where i.county not in ('Colorado', 'United States')  -- exclude state/national rollups
