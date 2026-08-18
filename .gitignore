@@ -1,0 +1,30 @@
+.git
+.env
+.DS_Store
+airflow_settings.yaml
+__pycache__/
+astro
+.venv
+airflow-webserver.pid
+webserver_config.py
+airflow.cfg
+airflow.db
+scripts
+sql_scripts
+fetch_and_land_raw.py
+raw_to_staging.py
+graphify-out
+dbt_dag.py
+venv2
+
+# Terraform files
+# Ignore ALL tfvars — they contain credentials and secrets
+**/*.tfvars
+**/*.tfvars.json
+# State files
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform/
+**/main.tfplan
+# Keep the lock file (documents exact provider versions)
+!**/.terraform.lock.hcl
