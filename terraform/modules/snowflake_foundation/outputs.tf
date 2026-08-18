@@ -41,11 +41,6 @@ output "external_volume_name" {
   value       = snowflake_external_volume.iceberg_volume.name
 }
 
-# Aliases consumed by other modules
-output "staging_schema_name" {
-  description = "Alias → RAW schema (used by snowflake_api module)"
-  value       = snowflake_schema.raw.name
-}
 
 output "raw_csv_stage_name" {
   description = "Name of the raw CSV stage"
