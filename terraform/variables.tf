@@ -20,7 +20,7 @@ variable "project_name" {
 }
 
 variable "db_name" {
-  description = "Snowflake database name for this environment (e.g. COLORADO_CRIME_DB_DEV)."
+  description = "Snowflake database name for this environment (e.g. COLORADO_CRIME_DB)."
   type        = string
 }
 
@@ -121,12 +121,6 @@ variable "airflow_service_password" {
 
 variable "dbt_service_password" {
   description = "Password for the dbt service user in Snowflake."
-  type        = string
-  sensitive   = true
-}
-
-variable "geoapify_api_key" {
-  description = "Geoapify API key for the GEOCODE_ADDRESS external function."
   type        = string
   sensitive   = true
 }
