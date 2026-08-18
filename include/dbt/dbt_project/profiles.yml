@@ -1,0 +1,32 @@
+dbt_project:
+  # Defaults to 'dev' — override by setting DBT_TARGET=prod in your environment or CI.
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
+
+  outputs:
+    dev:
+      type: snowflake
+      # ── Structure (hardcoded for clarity and safety) ───────────────────────
+      database: "COLORADO_CRIME_DB_DEV"
+      schema: "RAW"
+      warehouse: "TRANSFORMING_WH_DEV"
+      role: "TRANSFORMER_ROLE"
+      threads: 10
+      client_session_keep_alive: false
+      # ── Secrets (always injected via environment variables) ─────────────────
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+
+    prod:
+      type: snowflake
+      # ── Structure (hardcoded for clarity and safety) ───────────────────────
+      database: "COLORADO_CRIME_DB"
+      schema: "RAW"
+      warehouse: "TRANSFORMING_WH_PROD"
+      role: "TRANSFORMER_ROLE"
+      threads: 10
+      client_session_keep_alive: false
+      # ── Secrets (always injected via environment variables) ─────────────────
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_PROD_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PROD_PASSWORD') }}"
