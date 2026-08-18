@@ -1,0 +1,200 @@
+version: 2
+
+# ══════════════════════════════════════════════════════════════════════════
+# Semantic Layer — fact grain.
+#
+# fct_crimes and fct_income_population carry the semantic layer's core
+# metrics (this replaces the 13 hand-aggregated rpt_* reports that used to
+# live in models/marts/reporting/oedit and .../law_enforcement — see git
+# history / chat for what was removed). Both facts share a "geo" entity
+# (dim_geography.geo_key), which is what lets the cross-model
+# crime_rate_per_100k metric in _cross_model_metrics.yml join them live.
+#
+# Known behavior differences vs. the old rpt_* models, worth knowing:
+#   - Ranking (e.g. "top 3 crime categories per city") isn't a MetricFlow
+#     concept — query total_crimes grouped by city + offense_category_name
+#     (optionally filtered to time_of_day) and apply ORDER BY / LIMIT / rank
+#     in the BI tool.
+#   - "% of total" (e.g. pct_of_county_total) likewise isn't baked into a
+#     metric — query total_crimes by the grouping dimension and compute the
+#     share client-side (virtually every BI tool does this as a table calc).
+#   - Dropping the date/year dimension from a query sums total_crimes across
+#     the whole 1997-2020 window rather than averaging per year, unlike the
+#     old avg_monthly_crimes/avg_daily_crimes columns. Divide by count of
+#     distinct years client-side if you need the per-year average.
+#   - crime_avg_age does not reproduce the old rpt_city_avg_age_per_crime's
+#     age_num BETWEEN 10 AND 100 clamp or its HAVING count >= 5 statistical-
+#     significance filter. Query it alongside total_crimes and filter low-
+#     count rows client-side if needed.
+# ══════════════════════════════════════════════════════════════════════════
+
+models:
+  - name: fct_crimes
+    description: "Core crime incident fact table. Granularity: 1 row per incident (1997-2020). All crime KPIs aggregate from this table via dimension joins."
+    config:
+      tags: ['marts', 'fact']
+    semantic_model:
+      enabled: true
+    # fct_crimes has no natural single-column primary key (grain = 1 row per
+    # incident, no incident_id column) and only declares foreign entities
+    # (date/geo/offense/agency), so MetricFlow needs an explicit label for
+    # what a row represents. This doesn't need to be a real column.
+    primary_entity: crime_incident
+    agg_time_dimension: incident_date
+    columns:
+      - name: date_key
+        tests: [not_null]
+        description: "FK to dim_date"
+        entity:
+          name: date
+          type: foreign
+      - name: geo_key
+        tests: [not_null]
+        description: "FK to dim_geography"
+        entity:
+          name: geo
+          type: foreign
+      - name: offense_key
+        tests: [not_null]
+        description: "FK to dim_offense"
+        entity:
+          name: offense
+          type: foreign
+      - name: agency_key
+        description: "FK to dim_agency (nullable for unmatched agencies)"
+        entity:
+          name: agency
+          type: foreign
+      - name: incident_date
+        tests: [not_null]
+        granularity: day
+        dimension:
+          type: time
+      - name: time_of_day
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['day', 'night']
+        dimension:
+          type: categorical
+      - name: crime_count
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 1
+    metrics:
+      - name: total_crimes
+        type: simple
+        label: "Total Crimes"
+        description: "Crime incident count. Slice by any combination of geo/offense/agency/date dimensions to reproduce any of the old county- or city-level crime KPIs."
+        agg: sum
+        expr: crime_count
+      - name: crime_avg_age
+        type: simple
+        label: "Crime Avg Age"
+        description: "Average recorded age of individuals involved (source age_num is ~47% null; nulls are ignored by AVG, not clamped or filtered)."
+        agg: average
+        expr: age_num
+
+  - name: fct_income_population
+    description: "Annual county income and population snapshot fact. Granularity: 1 row per county per year (1997-2020)."
+    config:
+      tags: ['marts', 'fact']
+    semantic_model:
+      enabled: true
+    # Same situation as fct_crimes: grain is geo_key + year with no single-
+    # column key, and only a foreign `geo` entity is declared.
+    primary_entity: county_year
+    agg_time_dimension: year_date
+    columns:
+      - name: geo_key
+        tests: [not_null]
+        description: "FK to dim_geography (county-level rows only)"
+        entity:
+          name: geo
+          type: foreign
+      # `year` is intentionally not exposed as a MetricFlow dimension — it
+      # collides with a reserved time granularity keyword, and metric_time__year
+      # (a truncation of year_date below) already covers grouping by year.
+      - name: year
+        tests: [not_null]
+      - name: year_date
+        description: "Synthetic Jan-1-of-year date; the real time dimension backing agg_time_dimension for this model."
+        granularity: year
+        dimension:
+          type: time
+      - name: total_population
+        tests: [not_null]
+      - name: median_household_income
+      - name: per_capita_income
+      - name: total_personal_income
+      - name: population_yoy_change
+      - name: population_growth_pct
+    metrics:
+      - name: avg_median_household_income
+        type: simple
+        label: "Avg Median Household Income"
+        description: "KPI #2. Median household income; average across whatever years are in scope (drop the year_date dimension for an all-time average per county)."
+        agg: average
+        expr: median_household_income
+      - name: avg_per_capita_income
+        type: simple
+        label: "Avg Per Capita Income"
+        description: "KPI #8. Per capita income; average across whatever years are in scope."
+        agg: average
+        expr: per_capita_income
+      - name: avg_total_personal_income
+        type: simple
+        label: "Avg Total Personal Income"
+        agg: average
+        expr: total_personal_income
+      - name: avg_total_population
+        type: simple
+        label: "Avg Total Population"
+        description: "Population is a point-in-time snapshot, not additive across years — always aggregated as an average, never summed."
+        agg: average
+        expr: total_population
+      - name: avg_population_yoy_change
+        type: simple
+        label: "Avg Population YoY Change"
+        agg: average
+        expr: population_yoy_change
+      - name: avg_population_growth_pct
+        type: simple
+        label: "Avg Population Growth %"
+        description: "KPI #4 input. Year-over-year population growth %."
+        agg: average
+        expr: population_growth_pct
+      - name: counties_exceeding_10pct_growth_years
+        type: simple
+        label: "County-Years Exceeding 10% Population Growth"
+        description: "KPI #4. Count of county-year rows where population growth exceeded 10%."
+        agg: sum
+        expr: "case when population_growth_pct > 10 then 1 else 0 end"
+
+  - name: fct_business_subsidy_tiers
+    description: "B.A.S.E. program core output. One row per eligible business with composite subsidy tier. This is the central deliverable of the B.A.S.E. program."
+    config:
+      tags: ['marts', 'fact', 'base_program']
+    columns:
+      - name: business_key
+        tests: [not_null, unique]
+        description: "FK to dim_business"
+      - name: entity_id
+        tests: [not_null, unique]
+      - name: composite_tier
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 4
+      - name: qualifies_for_subsidy
+        tests: [not_null]
+      - name: subsidy_tier_label
+        tests: [not_null]
+      - name: notification_eligible
+        tests: [not_null]
