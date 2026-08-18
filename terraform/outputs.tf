@@ -9,15 +9,6 @@ output "snowflake_integration_role_name" {
   value       = module.aws_infra.snowflake_role_name
 }
 
-output "table_bucket_arn" {
-  description = "ARN of the S3 Tables bucket (Iceberg external volume — Silver + Gold)"
-  value       = module.aws_infra.table_bucket_arn
-}
-
-output "table_bucket_name" {
-  description = "Name of the S3 Tables bucket"
-  value       = module.aws_infra.table_bucket_name
-}
 
 output "general_purpose_bucket_name" {
   description = "Name of the general-purpose project S3 bucket"
@@ -106,9 +97,4 @@ output "airflow_service_user" {
 
 output "dbt_service_user" {
   value = module.snowflake_security.dbt_service_user
-}
-
-# ── Snowflake API outputs ─────────────────────────────────────────────────────────
-output "api_integration_name" {
-  value = module.snowflake_api.api_integration_name
 }
