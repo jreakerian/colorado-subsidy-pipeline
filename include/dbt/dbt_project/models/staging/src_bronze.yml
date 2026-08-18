@@ -1,0 +1,27 @@
+version: 2
+
+# Source declarations only
+
+sources:
+  - name: bronze
+    database: "{{ env_var('SNOWFLAKE_CATALOG', 'COLORADO_CRIME_DB_DEV') }}"
+    schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'RAW') }}"
+    description: "Raw (bronze) tables loaded from various Colorado government data sources."
+    tables:
+      - name: colorado_business_entities
+        description: "Business entity registrations from Colorado Department of State"
+
+      - name: colorado_county_coordinates
+        description: "County centroid coordinates from CDPHE"
+
+      - name: colorado_crimes_1997_2015
+        description: "Crime incident records 1997-2015 from CDPS / FBI Crime Data Explorer"
+
+      - name: colorado_crimes_2016_2020
+        description: "Crime incident records 2016-2020 from FBI Crime Data Explorer"
+
+      - name: colorado_income
+        description: "Personal income data from Colorado Department of Labor and Employment"
+
+      - name: colorado_population
+        description: "Population projections from Colorado Department of Local Affairs"
