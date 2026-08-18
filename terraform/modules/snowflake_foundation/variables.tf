@@ -22,15 +22,6 @@ variable "general_purpose_bucket" {
   type        = string
 }
 
-variable "table_bucket_name" {
-  description = "Name of the S3 Tables bucket used as the Iceberg external volume base"
-  type        = string
-}
-
-variable "table_bucket_arn" {
-  description = "ARN of the S3 Tables bucket for the Medallion architecture"
-  type        = string
-}
 
 variable "snowflake_external_id" {
   description = "The AWS_EXTERNAL_ID provided by Snowflake after DESCRIBE INTEGRATION"
