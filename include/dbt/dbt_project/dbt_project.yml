@@ -1,0 +1,79 @@
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'colorado_subsidy_pipeline'
+version: '1.0.0'
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'dbt_project'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+
+vars:
+  start_date: '01-01-1997'
+  end_date: '12-31-2020'
+  crime_categories:
+    - 'Destruction/Damage/Vandalism of Property'
+    - 'Burglary/Breaking & Entering'
+    - 'Larceny/Theft Offenses'
+    - 'Motor Vehicle Theft'
+    - 'Robbery'
+    - 'Arson'
+    - 'Stolen Property Offenses'
+
+
+models:
+  colorado_subsidy_pipeline:
+    staging:
+      +schema: raw
+      +materialized: view
+      +tags: ['staging']
+    intermediate:
+      +schema: silver
+      +materialized: table
+      +tags: ['intermediate']
+    marts:
+      +schema: gold
+      +materialized: table
+      +tags: ['marts']
+      dimensions:
+        +tags: ['marts', 'dimension']
+      facts:
+        +tags: ['marts', 'fact']
+
+    
+seeds:
+  colorado_subsidy_pipeline:
+    +tags: ['seed']
+    colorado_city_county_zip:
+      +column_types:
+        zip_code: integer
+        city: varchar
+        county: varchar
+    colorado_county_boundaries:
+      +column_types:
+        county: varchar
+        label: varchar
+        cent_lat: double
+        cent_long: double
+
+on-run-start:
+  - "{{ log('Starting dbt run for Colorado Subsidy Pipeline', info=True) }}"
+
+on-run-end:
+  - "{{ log('Completed dbt run for Colorado Subsidy Pipeline', info=True) }}"
+flags:
+  require_generic_test_arguments_property: true
