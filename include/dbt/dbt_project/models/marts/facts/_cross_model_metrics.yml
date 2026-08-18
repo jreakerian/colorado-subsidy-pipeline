@@ -1,0 +1,35 @@
+version: 2
+
+# ══════════════════════════════════════════════════════════════════════════
+# Cross-model metrics — must live at the top-level `metrics:` key per the
+# latest YAML spec, since they combine simple metrics defined in two
+# different semantic models (fct_crimes.total_crimes and
+# fct_income_population.avg_total_population), joined live by MetricFlow
+# via the shared `geo` entity.
+#
+# This one metric replaces crime_per_100k, which the old rpt_* layer
+# hand-computed identically in three separate models
+# (rpt_county_crime_vs_income, rpt_county_population_crime_trend,
+# rpt_county_crime_density_geo).
+#
+# This is the piece most worth re-confirming with a live `dbtf parse` /
+# `dbtf sl validate` — cross-semantic-model join resolution for ratio
+# metrics is the trickiest part of MetricFlow and isn't something that
+# could be executed in the sandbox this was authored in.
+# ══════════════════════════════════════════════════════════════════════════
+
+metrics:
+  - name: crime_to_population_ratio
+    type: ratio
+    label: "Crime-to-Population Ratio"
+    description: "Total crimes divided by average population, at whatever grain is queried (e.g. county + year). Joins fct_crimes and fct_income_population via the shared geo entity. Prefer crime_rate_per_100k below for a human-readable rate."
+    numerator: total_crimes
+    denominator: avg_total_population
+
+  - name: crime_rate_per_100k
+    type: derived
+    label: "Crime Rate per 100k Residents"
+    description: "KPIs #3, #7, #9. Crimes per 100k residents, computed live from fct_crimes + fct_income_population — replaces three separate hand-computed crime_per_100k columns in the old oedit reports."
+    expr: crime_to_population_ratio * 100000
+    input_metrics:
+      - name: crime_to_population_ratio
