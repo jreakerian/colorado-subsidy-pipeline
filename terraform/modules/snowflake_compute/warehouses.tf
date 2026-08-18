@@ -1,6 +1,6 @@
 # Warehouse for data loading operations
 resource "snowflake_warehouse" "loading_warehouse" {
-  name                = "LOADING_WH"
+  name                = "LOADING_WH_${upper(var.environment)}"
   warehouse_size      = var.loading_warehouse_size
   warehouse_type      = "STANDARD"
   auto_suspend        = 60
@@ -15,7 +15,7 @@ resource "snowflake_warehouse" "loading_warehouse" {
 
 # Warehouse for data transformation (dbt)
 resource "snowflake_warehouse" "transforming_warehouse" {
-  name                = "TRANSFORMING_WH"
+  name                = "TRANSFORMING_WH_${upper(var.environment)}"
   warehouse_size      = var.transforming_warehouse_size
   warehouse_type      = "STANDARD"
   auto_suspend        = 300
@@ -30,7 +30,7 @@ resource "snowflake_warehouse" "transforming_warehouse" {
 
 # Warehouse for analytics/BI queries
 resource "snowflake_warehouse" "analytics_warehouse" {
-  name                                = "ANALYTICS_WH"
+  name                                = "ANALYTICS_WH_${upper(var.environment)}"
   warehouse_size                      = var.analytics_warehouse_size
   warehouse_type                      = "STANDARD"
   auto_suspend                        = 600
