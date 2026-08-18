@@ -64,8 +64,6 @@ module "snowflake_foundation" {
   db_name                = var.db_name
   role_arn               = module.aws_infra.snowflake_role_arn
   general_purpose_bucket = module.aws_infra.general_purpose_bucket_name
-  table_bucket_name      = module.aws_infra.table_bucket_name
-  table_bucket_arn       = module.aws_infra.table_bucket_arn
   snowflake_external_id  = module.aws_infra.snowflake_external_id
 }
 
@@ -74,6 +72,7 @@ module "snowflake_foundation" {
 module "snowflake_compute" {
   source = "./modules/snowflake_compute"
 
+  environment                 = var.environment
   loading_warehouse_size      = var.loading_warehouse_size
   transforming_warehouse_size = var.transforming_warehouse_size
   analytics_warehouse_size    = var.analytics_warehouse_size
@@ -98,15 +97,4 @@ module "snowflake_security" {
   csv_file_format_name     = module.snowflake_foundation.csv_file_format_name
   parquet_file_format_name = module.snowflake_foundation.parquet_file_format_name
   stage_dependency_placeholder = module.snowflake_foundation.raw_csv_stage_name
-}
-
-# ── Snowflake API ─────────────────────────────────────────────────────────────────
-# API integration (Geoapify geocoding) using the shared SnowflakeIntegrationRole.
-module "snowflake_api" {
-  source = "./modules/snowflake_api"
-
-  role_arn            = module.aws_infra.api_integration_role_arn
-  database_name       = module.snowflake_foundation.database_name
-  staging_schema_name = module.snowflake_foundation.staging_schema_name
-  geoapify_api_key    = var.geoapify_api_key
 }
