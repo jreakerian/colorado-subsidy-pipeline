@@ -1,34 +1,29 @@
 # Single database per environment run.
-# The database name and schema suffixes are driven by var.db_name and var.environment.
+# The database name is driven by var.db_name and var.environment.
 # Run with: terraform apply -var-file=dev.tfvars  OR  -var-file=prod.tfvars
 
-locals {
-  schema_suffix = upper(var.environment) # "DEV" or "PROD"
-}
-
 resource "snowflake_database" "colorado_crime_db" {
-  name                        = var.db_name
+  name                        = "${upper(var.db_name)}_${upper(var.environment)}"
   comment                     = "Colorado Subsidy data pipeline — ${upper(var.environment)} environment"
-  data_retention_time_in_days = 0
+  
+  # Best practice: 0 days retention for DEV to save storage costs, 1+ days for PROD fail-safe
+  data_retention_time_in_days = lower(var.environment) == "prod" ? 1 : 0
 }
 
-# RAW schema — data landing zone
 resource "snowflake_schema" "raw" {
   database = snowflake_database.colorado_crime_db.name
-  name     = "RAW_${local.schema_suffix}"
+  name     = "RAW"
   comment  = "Raw data landing zone (${var.environment})"
 }
 
-# SILVER schema — cleaned and validated data
 resource "snowflake_schema" "silver" {
   database = snowflake_database.colorado_crime_db.name
-  name     = "SILVER_${local.schema_suffix}"
+  name     = "SILVER"
   comment  = "Cleaned and validated data (${var.environment})"
 }
 
-# GOLD schema — business-ready aggregates
 resource "snowflake_schema" "gold" {
   database = snowflake_database.colorado_crime_db.name
-  name     = "GOLD_${local.schema_suffix}"
+  name     = "GOLD"
   comment  = "Business-ready aggregated data (${var.environment})"
 }
