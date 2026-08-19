@@ -153,3 +153,15 @@ variable "dbt_service_password" {
   type        = string
   sensitive   = true
 }
+
+variable "dbt_semantic_service_password" {
+  description = "Password for the dbt Semantic Layer service user in Snowflake."
+  type        = string
+  sensitive   = true
+}
+
+variable "metabase_service_password" {
+  description = "Password for the Metabase service user in Snowflake."
+  type        = string
+  sensitive   = true
+}

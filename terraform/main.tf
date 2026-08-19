@@ -101,6 +101,8 @@ module "snowflake_security" {
   analytics_warehouse_name    = module.snowflake_compute.analytics_warehouse_name
   airflow_service_password    = var.airflow_service_password
   dbt_service_password        = var.dbt_service_password
+  dbt_semantic_service_password = var.dbt_semantic_service_password
+  metabase_service_password     = var.metabase_service_password
 
   # Foundation outputs — wire DB/schema names to create the dependency graph
   db_name                  = module.snowflake_foundation.database_name
