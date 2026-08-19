@@ -1,18 +1,17 @@
-# ── AWS Infrastructure outputs ────────────────────────────────────────────────────
+# ── AWS Infrastructure outputs ────────────────────────────────────────────────────────────
 output "snowflake_integration_role_arn" {
   description = "ARN of the shared IAM role for all Snowflake integrations"
-  value       = module.aws_infra.snowflake_role_arn
+  value       = local.snowflake_role_arn
 }
 
 output "snowflake_integration_role_name" {
   description = "Name of the shared IAM role for all Snowflake integrations"
-  value       = module.aws_infra.snowflake_role_name
+  value       = var.deploy_aws_infra ? module.aws_infra[0].snowflake_role_name : null
 }
-
 
 output "general_purpose_bucket_name" {
   description = "Name of the general-purpose project S3 bucket"
-  value       = module.aws_infra.general_purpose_bucket_name
+  value       = local.general_purpose_bucket_name
 }
 
 output "snowflake_external_id" {
