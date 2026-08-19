@@ -84,7 +84,7 @@ resource "snowflake_grant_privileges_to_account_role" "loader_raw" {
 
 resource "snowflake_grant_privileges_to_account_role" "transformer_raw" {
   account_role_name = snowflake_account_role.transformer_role.name
-  privileges        = ["USAGE"]
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
   on_schema {
     schema_name = "\"${var.db_name}\".\"${var.raw_schema_name}\""
   }
@@ -103,7 +103,7 @@ resource "snowflake_grant_privileges_to_account_role" "analyst_raw" {
 # ── SCHEMA GRANTS — SILVER ────────────────────────────────────────────────────────
 resource "snowflake_grant_privileges_to_account_role" "transformer_silver" {
   account_role_name = snowflake_account_role.transformer_role.name
-  privileges        = ["USAGE"]
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
   on_schema {
     schema_name = "\"${var.db_name}\".\"${var.silver_schema_name}\""
   }
@@ -129,6 +129,15 @@ resource "snowflake_grant_privileges_to_account_role" "analyst_gold" {
   depends_on = [snowflake_grant_privileges_to_account_role.analyst_db]
 }
 
+resource "snowflake_grant_privileges_to_account_role" "transformer_gold" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  privileges        = ["USAGE", "CREATE TABLE", "CREATE VIEW"]
+  on_schema {
+    schema_name = "\"${var.db_name}\".\"${var.gold_schema_name}\""
+  }
+  depends_on = [snowflake_grant_privileges_to_account_role.transformer_db]
+}
+
 # ── FUTURE TABLE GRANTS ───────────────────────────────────────────────────────────
 resource "snowflake_grant_privileges_to_account_role" "loader_future_tables_raw" {
   account_role_name = snowflake_account_role.loader_role.name
@@ -152,6 +161,18 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_future_tables
     }
   }
   depends_on = [snowflake_grant_privileges_to_account_role.transformer_silver]
+}
+
+resource "snowflake_grant_privileges_to_account_role" "transformer_future_tables_gold" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  privileges        = ["ALL"]
+  on_schema_object {
+    future {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${var.db_name}\".\"${var.gold_schema_name}\""
+    }
+  }
+  depends_on = [snowflake_grant_privileges_to_account_role.transformer_gold]
 }
 
 resource "snowflake_grant_privileges_to_account_role" "analyst_future_tables_gold" {
