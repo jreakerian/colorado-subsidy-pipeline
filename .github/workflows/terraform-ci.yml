@@ -1,0 +1,127 @@
+name: Terraform CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "terraform/**"
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "terraform/**"
+
+env:
+  TF_VERSION: "1.9.0"
+  AWS_REGION: "us-east-2"
+  WORKING_DIR: "./terraform"
+
+jobs:
+  terraform:
+    name: "Terraform Validate & Plan"
+    runs-on: ubuntu-latest
+
+    # Determine which environment to target based on the branch
+    env:
+      TF_VARS_FILE:   ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'prod.tfvars' || 'dev.tfvars' }}
+      TF_ENVIRONMENT: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'prod' || 'dev' }}
+      # dbt reads this to select the correct target in profiles.yml
+      DBT_TARGET:     ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'prod' || 'dev' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      # Write the RSA private key for Snowflake JWT auth from GitHub Secrets
+      - name: Write Snowflake private key
+        run: |
+          mkdir -p $HOME/.snowflake
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > $HOME/.snowflake/rsa_key.p8
+          chmod 600 $HOME/.snowflake/rsa_key.p8
+
+      - name: Show target environment
+        run: |
+          echo "🌍 Branch:      ${{ github.ref }}"
+          echo "📁 Vars file:   ${{ env.TF_VARS_FILE }}"
+          echo "🎯 Environment: ${{ env.TF_ENVIRONMENT }}"
+
+      # ── Terraform steps ────────────────────────────────────────────────────────
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform fmt -check -recursive
+        continue-on-error: true  # Warn but don't fail on formatting
+
+      - name: Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init -input=false
+        env:
+          TF_VAR_snowflake_organization_name: ${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}
+          TF_VAR_snowflake_account_name:      ${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}
+
+      - name: Terraform Validate
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform plan \
+            -var-file="${{ env.TF_VARS_FILE }}" \
+            -var="snowflake_organization_name=${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}" \
+            -var="snowflake_account_name=${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}" \
+            -var="snowflake_user=${{ secrets.SNOWFLAKE_USER }}" \
+            -var="snowflake_role=ACCOUNTADMIN" \
+            -var="snowflake_private_key_path=$HOME/.snowflake/rsa_key.p8" \
+            -var="private_key_passphrase=${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}" \
+            -var="airflow_service_password=${{ secrets.AIRFLOW_SERVICE_PASSWORD }}" \
+            -var="dbt_service_password=${{ secrets.DBT_SERVICE_PASSWORD }}" \
+            -var="geoapify_api_key=${{ secrets.GEOAPIFY_API_KEY }}" \
+            -input=false \
+            -no-color \
+            -out=tfplan
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Post plan output as a PR comment
+      - name: Post Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const plan = require('child_process')
+              .execSync('terraform show -no-color tfplan', { cwd: '${{ env.WORKING_DIR }}' })
+              .toString();
+            const truncated = plan.length > 60000
+              ? plan.substring(0, 60000) + '\n\n...(output truncated)'
+              : plan;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## 📋 Terraform Plan — `${{ env.TF_ENVIRONMENT }}` environment',
+                '',
+                '```hcl',
+                truncated,
+                '```',
+              ].join('\n')
+            });

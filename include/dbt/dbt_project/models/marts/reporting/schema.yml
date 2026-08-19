@@ -25,6 +25,7 @@ models:
       tags: ['marts', 'reporting', 'law_enforcement', 'kpi']
     semantic_model:
       enabled: true
+    agg_time_dimension: first_incident_date
     columns:
       - name: county_name
         tests: [not_null]
@@ -42,6 +43,9 @@ models:
         tests: [not_null]
       - name: first_incident_date
         tests: [not_null]
+        granularity: day
+        dimension:
+          type: time
       - name: last_incident_date
         tests: [not_null]
     metrics:
