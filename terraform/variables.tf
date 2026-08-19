@@ -112,6 +112,35 @@ variable "snowflake_external_id_prefix" {
 }
 
 
+# ── AWS module toggle ────────────────────────────────────────────────────────────
+# Set to false for prod to reuse the existing shared AWS infrastructure instead
+# of provisioning new S3 buckets and IAM roles.
+variable "deploy_aws_infra" {
+  description = "Whether to deploy the aws_infra module. Set to false for prod to reuse shared AWS resources."
+  type        = bool
+  default     = true
+}
+
+# When deploy_aws_infra = false, provide these values from the already-deployed
+# dev (or shared) AWS infrastructure so Snowflake modules can reference them.
+variable "existing_snowflake_role_arn" {
+  description = "ARN of the pre-existing SnowflakeIntegrationRole when deploy_aws_infra = false."
+  type        = string
+  default     = ""
+}
+
+variable "existing_general_purpose_bucket" {
+  description = "Name of the pre-existing general-purpose S3 bucket when deploy_aws_infra = false."
+  type        = string
+  default     = ""
+}
+
+variable "existing_snowflake_external_id" {
+  description = "Snowflake AWS_EXTERNAL_ID from the pre-existing storage integration when deploy_aws_infra = false."
+  type        = string
+  default     = ""
+}
+
 # ── Service account passwords ─────────────────────────────────────────────────────
 variable "airflow_service_password" {
   description = "Password for the Airflow service user in Snowflake."
