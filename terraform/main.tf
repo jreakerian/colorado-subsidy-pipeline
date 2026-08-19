@@ -42,8 +42,10 @@ data "aws_caller_identity" "current" {}
 # ── AWS Infrastructure ────────────────────────────────────────────────────────────
 # Creates the shared SnowflakeIntegrationRole, general-purpose S3 bucket,
 # and S3 Tables bucket (Silver + Gold namespaces).
+# Set deploy_aws_infra = false in prod.tfvars to skip this and reuse existing resources.
 module "aws_infra" {
   source = "./modules/aws_infra"
+  count  = var.deploy_aws_infra ? 1 : 0
 
   project_name              = var.project_name
   environment               = var.environment
@@ -54,6 +56,17 @@ module "aws_infra" {
   snowflake_external_id_prefix = var.snowflake_external_id_prefix
 }
 
+# ── AWS resource references ───────────────────────────────────────────────────────
+# When deploy_aws_infra = true  → pull values from the live module outputs.
+# When deploy_aws_infra = false → pull values from the existing_* variables supplied
+#                                  in prod.tfvars, pointing at the already-deployed
+#                                  dev (shared) AWS resources.
+locals {
+  snowflake_role_arn          = var.deploy_aws_infra ? module.aws_infra[0].snowflake_role_arn          : var.existing_snowflake_role_arn
+  general_purpose_bucket_name = var.deploy_aws_infra ? module.aws_infra[0].general_purpose_bucket_name : var.existing_general_purpose_bucket
+  snowflake_external_id_val   = var.deploy_aws_infra ? module.aws_infra[0].snowflake_external_id       : var.existing_snowflake_external_id
+}
+
 # ── Snowflake Foundation ──────────────────────────────────────────────────────────
 # One database per environment run (driven by var.db_name and var.environment).
 # Schemas: RAW_DEV/RAW_PROD, SILVER_DEV/SILVER_PROD, GOLD_DEV/GOLD_PROD
@@ -62,9 +75,9 @@ module "snowflake_foundation" {
 
   environment            = var.environment
   db_name                = var.db_name
-  role_arn               = module.aws_infra.snowflake_role_arn
-  general_purpose_bucket = module.aws_infra.general_purpose_bucket_name
-  snowflake_external_id  = module.aws_infra.snowflake_external_id
+  role_arn               = local.snowflake_role_arn
+  general_purpose_bucket = local.general_purpose_bucket_name
+  snowflake_external_id  = local.snowflake_external_id_val
 }
 
 # ── Snowflake Compute ─────────────────────────────────────────────────────────────
