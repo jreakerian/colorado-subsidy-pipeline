@@ -23,13 +23,15 @@ metrics:
     type: ratio
     label: "Crime-to-Population Ratio"
     description: "Total crimes divided by average population, at whatever grain is queried (e.g. county + year). Joins fct_crimes and fct_income_population via the shared geo entity. Prefer crime_rate_per_100k below for a human-readable rate."
-    numerator: total_crimes
-    denominator: avg_total_population
+    type_params:
+      numerator: total_crimes
+      denominator: avg_total_population
 
   - name: crime_rate_per_100k
     type: derived
     label: "Crime Rate per 100k Residents"
     description: "KPIs #3, #7, #9. Crimes per 100k residents, computed live from fct_crimes + fct_income_population — replaces three separate hand-computed crime_per_100k columns in the old oedit reports."
-    expr: crime_to_population_ratio * 100000
-    input_metrics:
-      - name: crime_to_population_ratio
+    type_params:
+      expr: "crime_to_population_ratio * 100000"
+      metrics:
+        - name: crime_to_population_ratio
