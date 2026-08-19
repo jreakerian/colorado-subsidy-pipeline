@@ -25,6 +25,7 @@ models:
       tags: ['marts', 'reporting', 'law_enforcement', 'kpi']
     semantic_model:
       enabled: true
+    primary_entity: county_agency_baseline
     agg_time_dimension: first_incident_date
     columns:
       - name: county_name
