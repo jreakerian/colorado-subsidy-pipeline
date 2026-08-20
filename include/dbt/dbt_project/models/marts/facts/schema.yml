@@ -31,29 +31,45 @@ version: 2
 # ── dbt model definitions (tests, column docs, tags only) ─────────────────
 models:
   - name: fct_crimes
-    description: "Core crime incident fact table. Granularity: 1 row per incident (1997-2024). All crime KPIs aggregate from this table via dimension joins."
+    description: "Core crime incident fact table. Granularity: 1 row per incident (1997-2024). All crime KPIs aggregate from this table via dimension joins. Crime incident semantic model. Primary entity: crime_incident. Joins to geo, date, offense, agency via foreign keys."
     config:
       tags: ['marts', 'fact']
     columns:
       - name: date_key
         tests: [not_null]
         description: "FK to dim_date"
+        entity:
+          type: foreign
+          name: date
       - name: geo_key
         tests: [not_null]
         description: "FK to dim_geography"
+        entity:
+          type: foreign
+          name: geo
       - name: offense_key
         tests: [not_null]
         description: "FK to dim_offense"
+        entity:
+          type: foreign
+          name: offense
       - name: agency_key
         description: "FK to dim_agency (nullable for unmatched agencies)"
+        entity:
+          type: foreign
+          name: agency
       - name: incident_date
         tests: [not_null]
+        dimension:
+          type: time
       - name: time_of_day
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ['day', 'night']
+        dimension:
+          type: categorical
       - name: crime_count
         tests:
           - not_null
@@ -62,18 +78,39 @@ models:
                 min_value: 1
                 max_value: 1
 
+    semantic_model:
+      enabled: true
+    metrics:
+      - name: total_crimes
+        type: simple
+        label: "Total Crimes"
+        description: "Crime incident count. Slice by any combination of geo/offense/agency/date dimensions to reproduce any of the old county- or city-level crime KPIs."
+        agg: sum
+        expr: crime_count
+        fill_nulls_with: 0
+      - name: crime_avg_age
+        type: simple
+        label: "Crime Avg Age"
+        description: "Average recorded age of individuals involved (source age_num is ~47% null; nulls are ignored by AVG, not clamped or filtered)."
+        agg: average
+        expr: age_num
   - name: fct_income_population
-    description: "Annual county income and population snapshot fact. Granularity: 1 row per county per year (1997-2024)."
+    description: "Annual county income and population snapshot fact. Granularity: 1 row per county per year (1997-2024). County income and population semantic model. Granularity: 1 row per county per year."
     config:
       tags: ['marts', 'fact']
     columns:
       - name: geo_key
         tests: [not_null]
         description: "FK to dim_geography (county-level rows only)"
+        entity:
+          type: foreign
+          name: geo
       - name: year
         tests: [not_null]
       - name: year_date
         description: "Synthetic Jan-1-of-year date; the real time dimension backing agg_time_dimension for this model."
+        dimension:
+          type: time
       - name: total_population
         tests:
           - not_null
@@ -88,6 +125,49 @@ models:
       - name: population_growth_pct
         description: "Year-over-year % population growth (used for >10% growth KPI)"
 
+    semantic_model:
+      enabled: true
+    metrics:
+      - name: avg_median_household_income
+        type: simple
+        label: "Avg Median Household Income"
+        description: "KPI #2. Median household income; average across whatever years are in scope."
+        agg: average
+        expr: median_household_income
+      - name: avg_per_capita_income
+        type: simple
+        label: "Avg Per Capita Income"
+        description: "KPI #8. Per capita income; average across whatever years are in scope."
+        agg: average
+        expr: per_capita_income
+      - name: avg_total_personal_income
+        type: simple
+        label: "Avg Total Personal Income"
+        agg: average
+        expr: total_personal_income
+      - name: avg_total_population
+        type: simple
+        label: "Avg Total Population"
+        description: "Population is a point-in-time snapshot, not additive across years — always aggregated as an average, never summed."
+        agg: average
+        expr: total_population
+      - name: avg_population_yoy_change
+        type: simple
+        label: "Avg Population YoY Change"
+        agg: average
+        expr: population_yoy_change
+      - name: avg_population_growth_pct
+        type: simple
+        label: "Avg Population Growth %"
+        description: "KPI #4 input. Year-over-year population growth %."
+        agg: average
+        expr: population_growth_pct
+      - name: counties_exceeding_10pct_growth_years
+        type: simple
+        label: "County-Years Exceeding 10% Population Growth"
+        description: "KPI #4. Count of county-year rows where population growth exceeded 10%."
+        agg: sum
+        expr: "case when population_growth_pct > 10 then 1 else 0 end"
   - name: fct_business_subsidy_tiers
     description: "B.A.S.E. program core output. One row per eligible business with composite subsidy tier. This is the central deliverable of the B.A.S.E. program."
     config:
@@ -113,143 +193,3 @@ models:
         tests: [not_null]
 
 # ── MetricFlow semantic models (entities, dimensions, measures) ────────────
-semantic_models:
-  - name: fct_crimes
-    model: ref('fct_crimes')
-    description: "Crime incident semantic model. Primary entity: crime_incident. Joins to geo, date, offense, agency via foreign keys."
-    primary_entity: crime_incident
-    agg_time_dimension: incident_date
-    entities:
-      - name: geo
-        type: foreign
-        expr: geo_key
-      - name: date
-        type: foreign
-        expr: date_key
-      - name: offense
-        type: foreign
-        expr: offense_key
-      - name: agency
-        type: foreign
-        expr: agency_key
-    dimensions:
-      - name: incident_date
-        type: time
-        granularity: day
-      - name: time_of_day
-        type: categorical
-    measures:
-      - name: total_crimes
-        agg: sum
-        expr: crime_count
-        description: "Crime incident count. Slice by any combination of geo/offense/agency/date dimensions."
-      - name: crime_avg_age
-        agg: average
-        expr: age_num
-        description: "Average recorded age of individuals involved (~47% null; nulls are ignored by AVG)."
-
-  - name: fct_income_population
-    model: ref('fct_income_population')
-    description: "County income and population semantic model. Granularity: 1 row per county per year."
-    primary_entity: county_year
-    agg_time_dimension: year_date
-    entities:
-      - name: geo
-        type: foreign
-        expr: geo_key
-    dimensions:
-      - name: year_date
-        type: time
-        granularity: year
-    measures:
-      - name: avg_median_household_income
-        agg: average
-        expr: median_household_income
-        description: "KPI #2. Median household income averaged across years in scope."
-      - name: avg_per_capita_income
-        agg: average
-        expr: per_capita_income
-        description: "KPI #8. Per capita income averaged across years in scope."
-      - name: avg_total_personal_income
-        agg: average
-        expr: total_personal_income
-      - name: avg_total_population
-        agg: average
-        expr: total_population
-        description: "Population is a point-in-time snapshot, not additive across years — always aggregated as average."
-      - name: avg_population_yoy_change
-        agg: average
-        expr: population_yoy_change
-      - name: avg_population_growth_pct
-        agg: average
-        expr: population_growth_pct
-        description: "KPI #4 input. Year-over-year population growth %."
-      - name: counties_exceeding_10pct_growth_years
-        agg: sum
-        expr: "case when population_growth_pct > 10 then 1 else 0 end"
-        description: "KPI #4. Count of county-year rows where population growth exceeded 10%."
-
-# ── Metrics (simple, ratio, derived) ──────────────────────────────────────
-metrics:
-  - name: total_crimes
-    type: simple
-    label: "Total Crimes"
-    description: "Crime incident count. Slice by any combination of geo/offense/agency/date dimensions to reproduce any of the old county- or city-level crime KPIs."
-    type_params:
-      measure:
-        name: total_crimes
-        fill_nulls_with: 0
-
-  - name: crime_avg_age
-    type: simple
-    label: "Crime Avg Age"
-    description: "Average recorded age of individuals involved (source age_num is ~47% null; nulls are ignored by AVG, not clamped or filtered)."
-    type_params:
-      measure: crime_avg_age
-
-  - name: avg_median_household_income
-    type: simple
-    label: "Avg Median Household Income"
-    description: "KPI #2. Median household income; average across whatever years are in scope."
-    type_params:
-      measure: avg_median_household_income
-
-  - name: avg_per_capita_income
-    type: simple
-    label: "Avg Per Capita Income"
-    description: "KPI #8. Per capita income; average across whatever years are in scope."
-    type_params:
-      measure: avg_per_capita_income
-
-  - name: avg_total_personal_income
-    type: simple
-    label: "Avg Total Personal Income"
-    type_params:
-      measure: avg_total_personal_income
-
-  - name: avg_total_population
-    type: simple
-    label: "Avg Total Population"
-    description: "Population is a point-in-time snapshot, not additive across years — always aggregated as an average, never summed."
-    type_params:
-      measure: avg_total_population
-
-  - name: avg_population_yoy_change
-    type: simple
-    label: "Avg Population YoY Change"
-    type_params:
-      measure: avg_population_yoy_change
-
-  - name: avg_population_growth_pct
-    type: simple
-    label: "Avg Population Growth %"
-    description: "KPI #4 input. Year-over-year population growth %."
-    type_params:
-      measure: avg_population_growth_pct
-
-  - name: counties_exceeding_10pct_growth_years
-    type: simple
-    label: "County-Years Exceeding 10% Population Growth"
-    description: "KPI #4. Count of county-year rows where population growth exceeded 10%."
-    type_params:
-      measure: counties_exceeding_10pct_growth_years
