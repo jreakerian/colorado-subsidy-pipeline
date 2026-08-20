@@ -56,10 +56,10 @@ models:
   #          OEDIT uses this same model to trigger automated notifications.
   # ══════════════════════════════════════════════════════════════════════════
 
+    primary_entity: county_agency_baseline
+    agg_time_dimension: first_incident_date
     semantic_model:
       enabled: true
-      primary_entity: county_agency_baseline
-      agg_time_dimension: first_incident_date
     metrics:
       - name: agency_total_crimes
         type: simple

@@ -78,10 +78,10 @@ models:
                 min_value: 1
                 max_value: 1
 
+    primary_entity: crime_incident
+    agg_time_dimension: incident_date
     semantic_model:
       enabled: true
-      primary_entity: crime_incident
-      agg_time_dimension: incident_date
     metrics:
       - name: total_crimes
         type: simple
@@ -127,10 +127,10 @@ models:
       - name: population_growth_pct
         description: "Year-over-year % population growth (used for >10% growth KPI)"
 
+    primary_entity: county_year
+    agg_time_dimension: year_date
     semantic_model:
       enabled: true
-      primary_entity: county_year
-      agg_time_dimension: year_date
     metrics:
       - name: avg_median_household_income
         type: simple
