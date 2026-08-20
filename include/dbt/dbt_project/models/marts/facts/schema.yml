@@ -60,6 +60,7 @@ models:
           name: agency
       - name: incident_date
         tests: [not_null]
+        granularity: day
         dimension:
           type: time
       - name: time_of_day
@@ -111,6 +112,7 @@ models:
         tests: [not_null]
       - name: year_date
         description: "Synthetic Jan-1-of-year date; the real time dimension backing agg_time_dimension for this model."
+        granularity: year
         dimension:
           type: time
       - name: total_population
