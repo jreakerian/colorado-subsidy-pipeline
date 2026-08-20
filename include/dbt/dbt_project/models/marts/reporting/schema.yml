@@ -8,6 +8,12 @@ version: 2
 #     table rather than a live MetricFlow-compiled query.
 #   - rpt_county_agency_crime_baseline: operational (sets a per-agency
 #     crime-reduction target), same reasoning.
+#
+# NOTE: rpt_business_tier_lookup has semantic_model: disabled.
+# It is a one-row-per-business snapshot table with no natural time spine.
+# MetricFlow requires agg_time_dimension for any semantic model with
+# metrics. Business-level metrics (business_count, avg_composite_tier,
+# etc.) are served from fct_business_subsidy_tiers instead.
 # ══════════════════════════════════════════════════════════════════════════
 
 models:
@@ -87,9 +93,10 @@ models:
   # Purpose: Allow businesses to search their assigned security subsidy tier.
   #          OEDIT uses this same model to trigger automated notifications.
   #
-  # NOTE: formation_date is intentionally NOT set as agg_time_dimension.
-  # This is a one-row-per-business snapshot table, not a time series.
-  # formation_date is exposed as a plain column for BI filtering only.
+  # Semantic model DISABLED — this is a snapshot table (one row per business)
+  # with no natural time series. MetricFlow requires agg_time_dimension for
+  # any semantic model with metrics. Business metrics are served from
+  # fct_business_subsidy_tiers (facts/schema.yml) instead.
   # ══════════════════════════════════════════════════════════════════════════
 
   - name: rpt_business_tier_lookup
@@ -102,35 +109,18 @@ models:
     config:
       tags: ['marts', 'reporting', 'business_portal', 'kpi', 'base_program']
     semantic_model:
-      enabled: true
+      enabled: false
     columns:
       - name: entity_id
         tests: [not_null, unique]
-        entity:
-          type: primary
-          name: business
       - name: entity_name
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: principal_city
-        dimension:
-          type: categorical
       - name: principal_county
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: principal_zip
-        dimension:
-          type: categorical
       - name: entity_type
-        dimension:
-          type: categorical
       - name: formation_date
-        # Plain column — useful for BI filtering but NOT a time spine.
-        # rpt_business_tier_lookup is a snapshot (one row per business),
-        # not a time series. Removing the time dimension avoids the
-        # "Invalid aggregation time dimension" MetricFlow error.
       - name: composite_tier
         tests:
           - not_null
@@ -139,54 +129,9 @@ models:
                 min_value: 1
                 max_value: 4
       - name: subsidy_tier_label
-        dimension:
-          type: categorical
       - name: qualifies_for_subsidy
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: notification_eligible
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: subsidy_message
         tests: [not_null]
-    metrics:
-      - name: business_count
-        type: simple
-        label: "Business Count"
-        description: "Count of Colorado businesses in the B.A.S.E. tier lookup, sliceable by tier/county/type."
-        agg: count
-        expr: entity_id
-      - name: avg_business_composite_tier
-        type: simple
-        label: "Avg Business Composite Tier"
-        agg: average
-        expr: composite_tier
-      - name: avg_business_crime_tier
-        type: simple
-        label: "Avg Business Crime Tier"
-        agg: average
-        expr: crime_tier
-      - name: avg_business_income_tier
-        type: simple
-        label: "Avg Business Income Tier"
-        agg: average
-        expr: income_tier
-      - name: avg_business_population_tier
-        type: simple
-        label: "Avg Business Population Tier"
-        agg: average
-        expr: population_tier
-      - name: subsidy_qualifying_business_count
-        type: simple
-        label: "Subsidy-Qualifying Business Count"
-        description: "Count of businesses that qualify for a B.A.S.E. subsidy (composite_tier >= 3)."
-        agg: sum_boolean
-        expr: qualifies_for_subsidy
-      - name: notification_eligible_business_count
-        type: simple
-        label: "Notification-Eligible Business Count"
-        description: "Count of businesses eligible for automated OEDIT notification."
-        agg: sum_boolean
-        expr: notification_eligible

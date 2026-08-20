@@ -176,10 +176,15 @@ models:
     description: "B.A.S.E. program core output. One row per eligible business with composite subsidy tier. This is the central deliverable of the B.A.S.E. program."
     config:
       tags: ['marts', 'fact', 'base_program']
+    semantic_model:
+      enabled: true
     columns:
       - name: business_key
         tests: [not_null, unique]
         description: "FK to dim_business"
+        entity:
+          type: primary
+          name: business
       - name: entity_id
         tests: [not_null, unique]
       - name: composite_tier
@@ -191,9 +196,37 @@ models:
                 max_value: 4
       - name: qualifies_for_subsidy
         tests: [not_null]
+        dimension:
+          type: categorical
       - name: subsidy_tier_label
         tests: [not_null]
+        dimension:
+          type: categorical
       - name: notification_eligible
         tests: [not_null]
-
-# ── MetricFlow semantic models (entities, dimensions, measures) ────────────
+        dimension:
+          type: categorical
+    metrics:
+      - name: business_count
+        type: simple
+        label: "Business Count"
+        description: "Count of Colorado businesses with an assigned B.A.S.E. tier, sliceable by tier/county/type."
+        agg: count
+        expr: business_key
+      - name: avg_business_composite_tier
+        type: simple
+        label: "Avg Business Composite Tier"
+        agg: average
+        expr: composite_tier
+      - name: subsidy_qualifying_business_count
+        type: simple
+        label: "Subsidy-Qualifying Business Count"
+        description: "Count of businesses that qualify for a B.A.S.E. subsidy (composite_tier >= 3)."
+        agg: sum_boolean
+        expr: qualifies_for_subsidy
+      - name: notification_eligible_business_count
+        type: simple
+        label: "Notification-Eligible Business Count"
+        description: "Count of businesses eligible for automated OEDIT notification."
+        agg: sum_boolean
+        expr: notification_eligible
