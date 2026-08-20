@@ -10,6 +10,7 @@ version: 2
 #     crime-reduction target), same reasoning.
 # ══════════════════════════════════════════════════════════════════════════
 
+# ── dbt model definitions (tests, column docs, tags only) ─────────────────
 models:
 
   # ══════════════════════════════════════════════════════════════════════════
@@ -23,55 +24,19 @@ models:
       by 5% within the next fiscal year, based on historical crime count baseline.
     config:
       tags: ['marts', 'reporting', 'law_enforcement', 'kpi']
-    semantic_model:
-      enabled: true
-    primary_entity: county_agency_baseline
-    agg_time_dimension: first_incident_date
     columns:
       - name: county_name
         tests: [not_null]
-        entity:
-          name: county
-          type: foreign
       - name: agency_name
         tests: [not_null]
-        entity:
-          name: agency_baseline
-          type: foreign
       - name: total_crimes
         tests: [not_null]
       - name: target_crimes_5pct_reduction
         tests: [not_null]
       - name: first_incident_date
         tests: [not_null]
-        granularity: day
-        dimension:
-          type: time
       - name: last_incident_date
         tests: [not_null]
-    metrics:
-      - name: agency_total_crimes
-        type: simple
-        label: "Agency Total Crimes"
-        description: "County KPI #1. Total historical crime count per police agency."
-        agg: sum
-        expr: total_crimes
-      - name: agency_target_crimes_5pct_reduction
-        type: simple
-        label: "Agency 5% Reduction Target"
-        description: "County KPI #1. Target crime count reflecting a 5% reduction goal per agency; additive across agencies."
-        agg: sum
-        expr: target_crimes_5pct_reduction
-      - name: agency_first_incident_date
-        type: simple
-        label: "Agency First Incident Date"
-        agg: min
-        expr: first_incident_date
-      - name: agency_last_incident_date
-        type: simple
-        label: "Agency Last Incident Date"
-        agg: max
-        expr: last_incident_date
 
   # ══════════════════════════════════════════════════════════════════════════
   # BUSINESS PORTAL — B.A.S.E. Self-Service Tier Lookup
@@ -89,36 +54,17 @@ models:
       Powered by fct_business_subsidy_tiers.
     config:
       tags: ['marts', 'reporting', 'business_portal', 'kpi', 'base_program']
-    semantic_model:
-      enabled: true
-    agg_time_dimension: formation_date
     columns:
       - name: entity_id
         tests: [not_null, unique]
-        entity:
-          name: business
-          type: primary
       - name: entity_name
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: principal_city
-        dimension:
-          type: categorical
       - name: principal_county
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: principal_zip
-        dimension:
-          type: categorical
       - name: entity_type
-        dimension:
-          type: categorical
       - name: formation_date
-        granularity: day
-        dimension:
-          type: time
       - name: composite_tier
         tests:
           - not_null
@@ -127,54 +73,166 @@ models:
                 min_value: 1
                 max_value: 4
       - name: subsidy_tier_label
-        dimension:
-          type: categorical
       - name: qualifies_for_subsidy
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: notification_eligible
         tests: [not_null]
-        dimension:
-          type: categorical
       - name: subsidy_message
         tests: [not_null]
-    metrics:
+
+# ── MetricFlow semantic models (entities, dimensions, measures) ────────────
+semantic_models:
+  - name: rpt_county_agency_crime_baseline
+    model: ref('rpt_county_agency_crime_baseline')
+    description: "County-agency crime baseline semantic model for KPI #1."
+    primary_entity: county_agency_baseline
+    agg_time_dimension: first_incident_date
+    entities:
+      - name: county
+        type: foreign
+        expr: county_name
+      - name: agency_baseline
+        type: foreign
+        expr: agency_name
+    dimensions:
+      - name: first_incident_date
+        type: time
+        granularity: day
+      - name: county_name
+        type: categorical
+      - name: agency_name
+        type: categorical
+    measures:
+      - name: agency_total_crimes
+        agg: sum
+        expr: total_crimes
+        description: "County KPI #1. Total historical crime count per police agency."
+      - name: agency_target_crimes_5pct_reduction
+        agg: sum
+        expr: target_crimes_5pct_reduction
+        description: "County KPI #1. Target crime count reflecting a 5% reduction goal per agency."
+      - name: agency_first_incident_date
+        agg: min
+        expr: first_incident_date
+      - name: agency_last_incident_date
+        agg: max
+        expr: last_incident_date
+
+  - name: rpt_business_tier_lookup
+    model: ref('rpt_business_tier_lookup')
+    description: "B.A.S.E. business tier semantic model for self-service lookup and OEDIT notifications."
+    agg_time_dimension: formation_date
+    entities:
+      - name: business
+        type: primary
+        expr: entity_id
+    dimensions:
+      - name: entity_name
+        type: categorical
+      - name: principal_city
+        type: categorical
+      - name: principal_county
+        type: categorical
+      - name: principal_zip
+        type: categorical
+      - name: entity_type
+        type: categorical
+      - name: formation_date
+        type: time
+        granularity: day
+      - name: subsidy_tier_label
+        type: categorical
+      - name: qualifies_for_subsidy
+        type: categorical
+      - name: notification_eligible
+        type: categorical
+    measures:
       - name: business_count
-        type: simple
-        label: "Business Count"
-        description: "Count of Colorado businesses in the B.A.S.E. tier lookup, sliceable by tier/county/type."
         agg: count
         expr: entity_id
+        description: "Count of Colorado businesses in the B.A.S.E. tier lookup."
       - name: avg_business_composite_tier
-        type: simple
-        label: "Avg Business Composite Tier"
         agg: average
         expr: composite_tier
       - name: avg_business_crime_tier
-        type: simple
-        label: "Avg Business Crime Tier"
         agg: average
         expr: crime_tier
       - name: avg_business_income_tier
-        type: simple
-        label: "Avg Business Income Tier"
         agg: average
         expr: income_tier
       - name: avg_business_population_tier
-        type: simple
-        label: "Avg Business Population Tier"
         agg: average
         expr: population_tier
       - name: subsidy_qualifying_business_count
-        type: simple
-        label: "Subsidy-Qualifying Business Count"
-        description: "Count of businesses that qualify for a B.A.S.E. subsidy (composite_tier >= 3)."
         agg: sum_boolean
         expr: qualifies_for_subsidy
+        description: "Count of businesses that qualify for a B.A.S.E. subsidy (composite_tier >= 3)."
       - name: notification_eligible_business_count
-        type: simple
-        label: "Notification-Eligible Business Count"
-        description: "Count of businesses eligible for automated OEDIT notification."
         agg: sum_boolean
         expr: notification_eligible
+        description: "Count of businesses eligible for automated OEDIT notification."
+
+# ── Metrics ────────────────────────────────────────────────────────────────
+metrics:
+  - name: agency_total_crimes
+    type: simple
+    label: "Agency Total Crimes"
+    description: "County KPI #1. Total historical crime count per police agency."
+    type_params:
+      measure:
+        name: agency_total_crimes
+        fill_nulls_with: 0
+
+  - name: agency_target_crimes_5pct_reduction
+    type: simple
+    label: "Agency 5% Reduction Target"
+    description: "County KPI #1. Target crime count reflecting a 5% reduction goal per agency; additive across agencies."
+    type_params:
+      measure:
+        name: agency_target_crimes_5pct_reduction
+        fill_nulls_with: 0
+
+  - name: business_count
+    type: simple
+    label: "Business Count"
+    description: "Count of Colorado businesses in the B.A.S.E. tier lookup, sliceable by tier/county/type."
+    type_params:
+      measure: business_count
+
+  - name: avg_business_composite_tier
+    type: simple
+    label: "Avg Business Composite Tier"
+    type_params:
+      measure: avg_business_composite_tier
+
+  - name: avg_business_crime_tier
+    type: simple
+    label: "Avg Business Crime Tier"
+    type_params:
+      measure: avg_business_crime_tier
+
+  - name: avg_business_income_tier
+    type: simple
+    label: "Avg Business Income Tier"
+    type_params:
+      measure: avg_business_income_tier
+
+  - name: avg_business_population_tier
+    type: simple
+    label: "Avg Business Population Tier"
+    type_params:
+      measure: avg_business_population_tier
+
+  - name: subsidy_qualifying_business_count
+    type: simple
+    label: "Subsidy-Qualifying Business Count"
+    description: "Count of businesses that qualify for a B.A.S.E. subsidy (composite_tier >= 3)."
+    type_params:
+      measure: subsidy_qualifying_business_count
+
+  - name: notification_eligible_business_count
+    type: simple
+    label: "Notification-Eligible Business Count"
+    description: "Count of businesses eligible for automated OEDIT notification."
+    type_params:
+      measure: notification_eligible_business_count
