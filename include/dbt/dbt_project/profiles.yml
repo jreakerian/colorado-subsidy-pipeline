@@ -15,12 +15,13 @@ dbt_project:
       # ── Secrets (always injected via environment variables) ─────────────────
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
       user: "{{ env_var('SNOWFLAKE_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH', '/home/eakerian/Downloads/dbt/rsa_key.pem') }}"
+      #private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', 'eakerian123') }}"
 
     prod:
       type: snowflake
       # ── Structure (hardcoded for clarity and safety) ───────────────────────
-      database: "COLORADO_CRIME_DB"
+      database: "COLORADO_CRIME_DB_PROD"
       schema: "RAW"
       warehouse: "TRANSFORMING_WH_PROD"
       role: "TRANSFORMER_ROLE"
@@ -28,5 +29,6 @@ dbt_project:
       client_session_keep_alive: false
       # ── Secrets (always injected via environment variables) ─────────────────
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
-      user: "{{ env_var('SNOWFLAKE_PROD_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PROD_PASSWORD') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH', '/home/eakerian/Downloads/dbt/rsa_key.pem') }}"
+      #private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', 'eakerian123') }}"

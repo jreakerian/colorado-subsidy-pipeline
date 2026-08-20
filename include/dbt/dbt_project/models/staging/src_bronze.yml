@@ -4,7 +4,7 @@ version: 2
 
 sources:
   - name: bronze
-    database: "{{ env_var('SNOWFLAKE_CATALOG', 'COLORADO_CRIME_DB_DEV') }}"
+    database: "{{ target.database }}"
     schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'RAW') }}"
     description: "Raw (bronze) tables loaded from various Colorado government data sources."
     tables:
