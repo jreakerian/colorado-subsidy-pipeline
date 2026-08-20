@@ -176,6 +176,8 @@ models:
     description: "B.A.S.E. program core output. One row per eligible business with composite subsidy tier. This is the central deliverable of the B.A.S.E. program."
     config:
       tags: ['marts', 'fact', 'base_program']
+    primary_entity: business
+    agg_time_dimension: formation_date
     semantic_model:
       enabled: true
     columns:
@@ -187,6 +189,11 @@ models:
           name: business
       - name: entity_id
         tests: [not_null, unique]
+      - name: formation_date
+        description: "Date the business was registered with CDOS. Used as the semantic model time spine."
+        granularity: day
+        dimension:
+          type: time
       - name: composite_tier
         tests:
           - not_null
