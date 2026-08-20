@@ -10,7 +10,6 @@ version: 2
 #     crime-reduction target), same reasoning.
 # ══════════════════════════════════════════════════════════════════════════
 
-# ── dbt model definitions (tests, column docs, tags only) ─────────────────
 models:
 
   # ══════════════════════════════════════════════════════════════════════════
@@ -19,10 +18,15 @@ models:
 
   - name: rpt_county_agency_crime_baseline
     description: >-
-      County Level KPI #1. Set a goal for each police agency within a given county to reduce crime by 5% within the next fiscal year, based on historical crime count baseline.
-       County-agency crime baseline semantic model for KPI #1.
+      County Level KPI #1. Set a goal for each police agency within a given
+      county to reduce crime by 5% within the next fiscal year, based on
+      historical crime count baseline.
     config:
       tags: ['marts', 'reporting', 'law_enforcement', 'kpi']
+    primary_entity: county_agency_baseline
+    agg_time_dimension: first_incident_date
+    semantic_model:
+      enabled: true
     columns:
       - name: county_name
         tests: [not_null]
@@ -46,20 +50,9 @@ models:
         tests: [not_null]
         dimension:
           type: time
+          granularity: day
       - name: last_incident_date
         tests: [not_null]
-
-  # ══════════════════════════════════════════════════════════════════════════
-  # BUSINESS PORTAL — B.A.S.E. Self-Service Tier Lookup
-  # Audience: Colorado business owners registered with CDOS
-  # Purpose: Allow businesses to search their assigned security subsidy tier.
-  #          OEDIT uses this same model to trigger automated notifications.
-  # ══════════════════════════════════════════════════════════════════════════
-
-    primary_entity: county_agency_baseline
-    agg_time_dimension: first_incident_date
-    semantic_model:
-      enabled: true
     metrics:
       - name: agency_total_crimes
         type: simple
@@ -76,22 +69,40 @@ models:
         expr: target_crimes_5pct_reduction
         fill_nulls_with: 0
       - name: agency_first_incident_date
+        type: simple
+        label: "Agency First Incident Date"
         agg: min
         expr: first_incident_date
-        type: simple
         hidden: true
       - name: agency_last_incident_date
+        type: simple
+        label: "Agency Last Incident Date"
         agg: max
         expr: last_incident_date
-
-        type: simple
         hidden: true
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # BUSINESS PORTAL — B.A.S.E. Self-Service Tier Lookup
+  # Audience: Colorado business owners registered with CDOS
+  # Purpose: Allow businesses to search their assigned security subsidy tier.
+  #          OEDIT uses this same model to trigger automated notifications.
+  #
+  # NOTE: formation_date is intentionally NOT set as agg_time_dimension.
+  # This is a one-row-per-business snapshot table, not a time series.
+  # formation_date is exposed as a plain column for BI filtering only.
+  # ══════════════════════════════════════════════════════════════════════════
+
   - name: rpt_business_tier_lookup
     description: >-
-      B.A.S.E. Program front-facing tier search tool. Business owners search by entity_id or entity_name to see their assigned subsidy tier. OEDIT queries this model to automatically notify all notification_eligible businesses, streamlining the application process. Powered by fct_business_subsidy_tiers.
-       B.A.S.E. business tier semantic model for self-service lookup and OEDIT notifications.
+      B.A.S.E. Program front-facing tier search tool. Business owners search
+      by entity_id or entity_name to see their assigned subsidy tier. OEDIT
+      queries this model to automatically notify all notification_eligible
+      businesses, streamlining the application process. Powered by
+      fct_business_subsidy_tiers.
     config:
       tags: ['marts', 'reporting', 'business_portal', 'kpi', 'base_program']
+    semantic_model:
+      enabled: true
     columns:
       - name: entity_id
         tests: [not_null, unique]
@@ -116,8 +127,10 @@ models:
         dimension:
           type: categorical
       - name: formation_date
-        dimension:
-          type: time
+        # Plain column — useful for BI filtering but NOT a time spine.
+        # rpt_business_tier_lookup is a snapshot (one row per business),
+        # not a time series. Removing the time dimension avoids the
+        # "Invalid aggregation time dimension" MetricFlow error.
       - name: composite_tier
         tests:
           - not_null
@@ -138,10 +151,6 @@ models:
           type: categorical
       - name: subsidy_message
         tests: [not_null]
-
-# ── MetricFlow semantic models (entities, dimensions, measures) ────────────
-    semantic_model:
-      enabled: true
     metrics:
       - name: business_count
         type: simple
