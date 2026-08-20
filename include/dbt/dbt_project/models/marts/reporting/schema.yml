@@ -48,9 +48,9 @@ models:
         tests: [not_null]
       - name: first_incident_date
         tests: [not_null]
+        granularity: day
         dimension:
           type: time
-          granularity: day
       - name: last_incident_date
         tests: [not_null]
     metrics:
