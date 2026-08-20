@@ -80,6 +80,8 @@ models:
 
     semantic_model:
       enabled: true
+      primary_entity: crime_incident
+      agg_time_dimension: incident_date
     metrics:
       - name: total_crimes
         type: simple
@@ -127,6 +129,8 @@ models:
 
     semantic_model:
       enabled: true
+      primary_entity: county_year
+      agg_time_dimension: year_date
     metrics:
       - name: avg_median_household_income
         type: simple
