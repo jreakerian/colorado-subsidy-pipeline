@@ -17,6 +17,7 @@ jobs:
   dbt-ci:
     name: Zero-Copy Clone CI (OIDC WIF)
     runs-on: ubuntu-latest
+    environment: dev  # Targets the 'dev' environment in GitHub Actions
 
     env:
       # Reads from GitHub Variables first, falling back to Secrets if stored there
