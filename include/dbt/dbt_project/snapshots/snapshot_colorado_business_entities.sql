@@ -2,36 +2,17 @@
 
 {{
     config(
-        -- ── Target ─────────────────────────────────────────────────────────────
-        -- Write into the SILVER schema alongside other intermediates rather than
-        -- a dedicated 'snapshots' schema so the same TRANSFORMER_ROLE grants apply
-        -- without extra Terraform provisioning.
         target_schema  = 'silver',
         target_database = env_var('DBT_DATABASE', 'COLORADO_CRIME_DB_DEV'),
-
-        -- ── Key & Strategy ─────────────────────────────────────────────────────
-        -- `entity_id` is the stable natural key assigned by the Colorado SoS.
-        -- It never changes for the life of a business registration, making it
-        -- the correct unique_key — not a surrogate integer that could shift.
         unique_key     = 'entity_id',
-
-        -- Strategy: 'check' over a narrow column list rather than 'timestamp'
-        -- because the source API does not expose a reliable updated_at field.
-        -- Only the columns that drive B.A.S.E. subsidy eligibility decisions
-        -- are tracked — not cosmetic fields (address2, country) that generate
-        -- false positives and inflate snapshot history without business value.
         strategy       = 'check',
         check_cols     = [
-            'entity_status',          -- drives is_eligible: Good Standing ↔ Delinquent/Dissolved
-            'principal_zip_code',     -- determines county, which determines subsidy tier
-            'principal_city',         -- city change may cross county boundaries
-            'entity_name',            -- name change could indicate corporate restructuring
-            'entity_type',            -- e.g. LLC → Corp can affect subsidy classification
+            'entity_status',
+            'principal_zip_code',
+            'principal_city',
+            'entity_name',
+            'entity_type',
         ],
-
-        -- Soft-delete invalidated rows when a business disappears from the
-        -- source API entirely (dissolved/removed from registry).
-        -- dbt_valid_to is set to the current timestamp; is_current becomes false.
         invalidate_hard_deletes = true,
     )
 }}
