@@ -13,12 +13,7 @@
       'scd_type'   : 2,
       'pii'        : true,
       'pii_columns': ['entity_name', 'principal_address_1'],
-      'description': (
-        'SCD Type 2 Colorado business entity dimension. '
-        'One row per entity per version of its mutable attributes. '
-        'Use is_current = TRUE to get the present-day state. '
-        'Use valid_from / valid_to for point-in-time subsidy eligibility audits.'
-      )
+      'description': 'SCD Type 2 Colorado business entity dimension. One row per entity per version of its mutable attributes. Use is_current = TRUE to get the present-day state. Use valid_from / valid_to for point-in-time subsidy eligibility audits.'
     }
   )
 }}
