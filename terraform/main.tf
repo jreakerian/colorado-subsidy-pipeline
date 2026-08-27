@@ -1,14 +1,22 @@
 terraform {
   required_version = ">= 1.5.0"
 
+  # backend "s3" {
+  #   bucket         = "colorado-subsidy-terraform-state-backend"
+  #   key            = "state/terraform.tfstate"
+  #   region         = "us-east-2"
+  #   dynamodb_table = "terraform-state-lock"
+  #   encrypt        = true
+  # }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = ">= 6.0"
     }
     snowflake = {
-      source  = "Snowflake-Labs/snowflake"
-      version = "~> 0.87"
+      source  = "snowflakedb/snowflake"
+      version = "~> 2.19"
     }
   }
 }
@@ -35,6 +43,10 @@ provider "snowflake" {
   private_key            = file(var.snowflake_private_key_path)
   private_key_passphrase = var.private_key_passphrase
   role                   = var.snowflake_role
+
+  # Required to use the new type-specific file format resources and WIF (preview in v2.x)
+  preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource", "snowflake_file_format_parquet_resource"]
+  experimental_features_enabled = ["USER_ENABLE_DEFAULT_WORKLOAD_IDENTITY"]
 }
 
 data "aws_caller_identity" "current" {}

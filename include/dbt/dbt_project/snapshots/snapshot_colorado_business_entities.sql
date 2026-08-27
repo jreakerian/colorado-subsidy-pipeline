@@ -80,4 +80,12 @@ qualify row_number() over (
     order by _ingested_at desc
 ) = 1
 
+-- NOTE: No ORDER BY here.
+-- dbt_valid_to (the basis for is_current) is a dbt-managed column appended
+-- AFTER this source query runs — it does not exist here and cannot be sorted on.
+-- Additionally, the snapshot is append-only: new changed rows are inserted on
+-- every incremental run regardless of any ORDER BY, so sort order drifts.
+-- Physical ordering by is_current DESC, entity_status is handled in dim_business,
+-- which does a full table rebuild on every run and has access to all derived columns.
+
 {% endsnapshot %}

@@ -4,15 +4,9 @@
     schema       = 'gold',
     tags         = ['marts', 'dimension', 'scd2'],
 
-    -- Cluster on entity_status and principal_zip so Snowflake prunes micro-partitions
-    -- efficiently for the two most common query patterns:
-    --   1. Subsidy portal: WHERE is_current = true AND is_eligible = true
-    --   2. Historical audit: WHERE entity_id = ? ORDER BY valid_from
-    cluster_by   = ['is_current', 'entity_status'],
-
     -- Full-table rebuild on schedule; no incremental needed — the snapshot
-    -- already handles the append-only SCD2 accumulation. dim_business is a
-    -- clean denormalized view over that snapshot.
+    -- already handles the append-only SCD2 accumulation and physical ordering.
+    -- dim_business is a clean denormalized view over that ordered snapshot.
     meta = {
       'owner'      : 'analytics',
       'tier'       : 'marts',
@@ -36,15 +30,12 @@
 
 with
 
--- ── 1. Snapshot source ─────────────────────────────────────────────────────────
 -- Pull every historical version of each business entity from the SCD2 snapshot.
--- dbt_scd_id is the unique surrogate key that identifies a specific version row.
--- dbt_valid_from / dbt_valid_to bound the period in which that version was active.
--- dbt_valid_to IS NULL means the record is the current live version.
+
 snapshot as (
 
     select
-        dbt_scd_id,
+        dbt_scd_id, -- dbt_scd_id is the unique surrogate key that identifies a specific version row.
         entity_id,
         entity_name,
         entity_status,
@@ -55,10 +46,10 @@ snapshot as (
         principal_city,
         principal_state,
         principal_zip_code,
-        dbt_valid_from,
+        dbt_valid_from, -- dbt_valid_from / dbt_valid_to bound the period in which that version was active.
         dbt_valid_to,
         -- Derived columns computed once here rather than repeated downstream
-        dbt_valid_to is null                                        as is_current,
+        dbt_valid_to is null                                        as is_current, -- dbt_valid_to IS NULL means the record is the current live version.
         entity_status = 'Good Standing'                             as is_eligible,
         case
             when regexp_like(principal_zip_code, '{{ zip_regex }}')
@@ -69,7 +60,6 @@ snapshot as (
 
 ),
 
--- ── 2. ZIP → County/City lookup ────────────────────────────────────────────────
 -- Resolve the authoritative county from the ZIP+city seed.
 -- This join is intentionally LEFT so businesses with missing/invalid ZIP codes
 -- are still included — they simply get null resolved_county and are filtered
@@ -84,7 +74,7 @@ geo_lookup as (
 
 ),
 
--- ── 3. Enrich each snapshot version with resolved geography ────────────────────
+-- Enrich each snapshot version with resolved geography
 enriched as (
 
     select
@@ -121,7 +111,7 @@ enriched as (
 
 ),
 
--- ── 4. Stable surrogate key ────────────────────────────────────────────────────
+-- Stable surrogate key 
 -- Use md5(entity_id || '::' || valid_from) rather than row_number() over (order by
 -- entity_id) — the previous approach.
 --
@@ -133,7 +123,7 @@ enriched as (
 --
 --   md5(entity_id || '::' || valid_from::varchar) is stable and reproducible:
 --   the same entity version always produces the same key regardless of rebuild
---   timing or order — a prerequisite for any production data warehouse.
+--   timing or order.
 
 final as (
 
@@ -164,4 +154,23 @@ final as (
 
 )
 
+-- ORDER BY mirrors the columns previously in cluster_by: ['is_current', 'entity_status'].
+-- Because dim_business is a full table rebuild on every dbt run, this ORDER BY physically
+-- writes micro-partitions in the most common query access order at build time — at zero
+-- ongoing compute cost. Snowflake's micro-partition pruning then benefits the same queries
+-- that cluster_by would have served:
+--   1. is_current DESC  → current rows land in the first micro-partitions
+--                         (subsidy portal queries: WHERE is_current = true)
+--   2. entity_status    → groups eligibility within current rows
+--                         (eligibility filter: AND entity_status = 'Good Standing')
+--   3. entity_id        → deterministic tie-break; stable sort across rebuilds
+--
+-- is_current cannot be sorted in the snapshot source query (dbt_valid_to is appended
+-- by dbt after the source SELECT runs and the snapshot appends rows incrementally,
+-- so sort order would drift). The full-rebuild nature of this model is what makes
+-- the ORDER BY effective here.
 select * from final
+order by
+    is_current desc,
+    entity_status,
+    entity_id

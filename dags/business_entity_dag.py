@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # ── Standard library ──────────────────────────────────────────────────────────
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ── Airflow ───────────────────────────────────────────────────────────────────
@@ -14,7 +14,6 @@ from cosmos.profiles import SnowflakeUserPasswordProfileMapping
 
 # ── Project helpers ───────────────────────────────────────────────────────────
 from include.eakerian.business_entity_helpers import on_dag_failure
-
 
 SNOWFLAKE_CONN_ID = "snowflake_default"
 RAW_TABLE  = os.environ.get(
@@ -111,7 +110,7 @@ def on_task_failure(context: dict) -> None:
         "execution_timeout": timedelta(hours=1),
         **_DEFAULT_RETRY_ARGS,
     },
-    start_date=datetime(2025, 10, 8),
+    start_date=datetime(2025, 10, 8, tzinfo=timezone.utc),
     max_active_runs=1,
     schedule="0 13 * * *",  # 1 PM UTC ≈ 7 AM MT
     catchup=False,
