@@ -2,17 +2,19 @@
 templater = dbt
 dialect = snowflake
 max_line_length = 100
-exclude_rules = L031, L034, L016
+exclude_rules = AM04, RF03, RF04
 
 [sqlfluff:templater:dbt]
 project_dir = include/dbt/dbt_project
-profiles_dir = include/dbt/dbt_project
+# profiles_dir is intentionally NOT set here so it can be overridden at runtime:
+#   - Locally: set DBT_PROFILES_DIR=include/dbt/dbt_project (key-pair auth)
+#   - CI:      set DBT_PROFILES_DIR=$HOME/.dbt (ephemeral OIDC WIF profiles.yml)
 
-[sqlfluff:rules:L010]
+[sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower
 
-[sqlfluff:rules:L014]
+[sqlfluff:rules:capitalisation.identifiers]
 extended_capitalisation_policy = lower
 
-[sqlfluff:rules:L030]
+[sqlfluff:rules:capitalisation.functions]
 capitalisation_policy = upper

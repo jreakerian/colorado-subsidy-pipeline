@@ -54,9 +54,7 @@ jobs:
         working-directory: ./include/dbt/dbt_project
         run: dbt deps
 
-      - name: Lint SQL
-        working-directory: ./include/dbt/dbt_project
-        run: sqlfluff lint models
+
 
       - name: Generate ephemeral profiles.yml (OIDC WIF — never committed)
         run: |
@@ -79,6 +77,12 @@ jobs:
                 threads: 10
                 client_session_keep_alive: false
           EOF
+
+      - name: Lint SQL
+        working-directory: ./include/dbt/dbt_project
+        env:
+          DBT_PROFILES_DIR: ${{ env.HOME }}/.dbt
+        run: sqlfluff lint models
 
       - name: Create Zero-Copy Clone Schema
         run: |
