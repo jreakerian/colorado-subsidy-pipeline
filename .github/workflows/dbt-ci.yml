@@ -59,29 +59,38 @@ jobs:
       - name: Generate ephemeral profiles.yml (OIDC WIF — never committed)
         run: |
           mkdir -p $HOME/.dbt
-          cat > $HOME/.dbt/profiles.yml <<EOF
-          dbt_project:
-            target: ci
-            outputs:
-              ci:
-                type: snowflake
-                account: "${SNOWFLAKE_ACCOUNT}"
-                user: "${SNOWFLAKE_USER}"
-                authenticator: WORKLOAD_IDENTITY
-                workload_identity_provider: OIDC
-                token: "${SNOWFLAKE_OIDC_TOKEN}"
-                database: "${CI_DATABASE}"
-                schema: "${CI_SCHEMA}"
-                warehouse: "${CI_WAREHOUSE}"
-                role: "${CI_ROLE}"
-                threads: 10
-                client_session_keep_alive: false
-          EOF
+          # Export HOME so subsequent steps can reference it as a GHA expression
+          echo "RUNNER_HOME=$HOME" >> $GITHUB_ENV
+          # Use Python to write the file — avoids heredoc leading-space indentation issues
+          python3 - <<'PYEOF'
+          import os
+          content = f"""dbt_project:
+  target: ci
+  outputs:
+    ci:
+      type: snowflake
+      account: \"{os.environ['SNOWFLAKE_ACCOUNT']}\"
+      user: \"{os.environ['SNOWFLAKE_USER']}\"
+      authenticator: WORKLOAD_IDENTITY
+      workload_identity_provider: OIDC
+      token: \"{os.environ['SNOWFLAKE_OIDC_TOKEN']}\"
+      database: \"{os.environ['CI_DATABASE']}\"
+      schema: \"{os.environ['CI_SCHEMA']}\"
+      warehouse: \"{os.environ['CI_WAREHOUSE']}\"
+      role: \"{os.environ['CI_ROLE']}\"
+      threads: 10
+      client_session_keep_alive: false
+"""
+          path = os.path.join(os.environ['HOME'], '.dbt', 'profiles.yml')
+          with open(path, 'w') as f:
+              f.write(content)
+          print(f'Wrote ephemeral profiles.yml to {path}')
+          PYEOF
 
       - name: Lint SQL
         working-directory: ./include/dbt/dbt_project
         env:
-          DBT_PROFILES_DIR: ${{ env.HOME }}/.dbt
+          DBT_PROFILES_DIR: ${{ env.RUNNER_HOME }}/.dbt
         run: sqlfluff lint models
 
       - name: Create Zero-Copy Clone Schema
