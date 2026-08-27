@@ -4,9 +4,9 @@
     schema       = 'gold',
     tags         = ['marts', 'dimension', 'scd2'],
 
-    -- Full-table rebuild on schedule; no incremental needed — the snapshot
-    -- already handles the append-only SCD2 accumulation and physical ordering.
-    -- dim_business is a clean denormalized view over that ordered snapshot.
+    {# Full-table rebuild on schedule; no incremental needed — the snapshot
+       already handles the append-only SCD2 accumulation and physical ordering.
+       dim_business is a clean denormalized view over that ordered snapshot. #}
     meta = {
       'owner'      : 'analytics',
       'tier'       : 'marts',
