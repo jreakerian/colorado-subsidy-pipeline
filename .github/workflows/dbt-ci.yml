@@ -1,12 +1,10 @@
-name: dbt CI (Zero-Copy Clone, Fusion Engine & OIDC WIF)
+name: dbt CI (Zero-Copy Clone & OIDC WIF)
 
 on:
   pull_request:
     paths:
       - 'include/dbt/dbt_project/**'
 
-# Cancel any in-flight run for the same PR the moment a newer push arrives.
-# This prevents the stale run's DROP SCHEMA from racing with the fresh run's dbt build.
 concurrency:
   group: dbt-ci-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -16,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  dbt-fusion-ci:
+  dbt-ci:
     name: Zero-Copy Clone CI (OIDC WIF)
     runs-on: ubuntu-latest
 
@@ -33,27 +31,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python (for SQLFluff & Snowflake helper)
+      - name: Setup Python (for dbt, SQLFluff & Snowflake helper)
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          # snowflake-connector-python >=3.17.0 required for WORKLOAD_IDENTITY authenticator
-          pip install sqlfluff "snowflake-connector-python>=3.17.0"
-
-      - name: Setup dbt Fusion Engine
-        uses: dbt-labs/setup-dbt-fusion@v1
-        with:
-          version: 'latest'
+          pip install dbt-snowflake sqlfluff "snowflake-connector-python>=3.17.0"
 
       - name: Fetch GitHub OIDC Token
         uses: actions/github-script@v7
         with:
           script: |
-            // No custom audience — Snowflake WIF validates via issuer+subject match on the
-            // user's WORKLOAD_IDENTITY definition. The default GitHub audience is correct.
             const token = await core.getIDToken();
             core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
             core.setSecret(token);
@@ -62,15 +52,13 @@ jobs:
         working-directory: ./include/dbt/dbt_project
         run: sqlfluff lint models
 
-      - name: dbt Fusion dependencies
+      - name: dbt dependencies
         working-directory: ./include/dbt/dbt_project
-        run: dbt fusion deps
+        run: dbt deps
 
       - name: Generate ephemeral profiles.yml (OIDC WIF — never committed)
         run: |
           mkdir -p $HOME/.dbt
-          # This file lives only on the runner for the duration of this job.
-          # profiles.yml in the repo stays key-pair only for human service users.
           cat > $HOME/.dbt/profiles.yml <<EOF
           dbt_project:
             target: ci
@@ -118,10 +106,10 @@ jobs:
           print('Clone schema created successfully.')
           "
 
-      - name: Run dbt Fusion Slim CI against Clone Schema
+      - name: Run dbt Slim CI against Clone Schema
         working-directory: ./include/dbt/dbt_project
         run: |
-          dbt fusion build \
+          dbt build \
             --profiles-dir $HOME/.dbt \
             --select state:modified+ \
             --defer \
