@@ -1,0 +1,152 @@
+name: dbt CI (Zero-Copy Clone, Fusion Engine & OIDC WIF)
+
+on:
+  pull_request:
+    paths:
+      - 'include/dbt/dbt_project/**'
+
+# Cancel any in-flight run for the same PR the moment a newer push arrives.
+# This prevents the stale run's DROP SCHEMA from racing with the fresh run's dbt build.
+concurrency:
+  group: dbt-ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write   # required to mint the GitHub OIDC token
+  contents: read
+
+jobs:
+  dbt-fusion-ci:
+    name: Zero-Copy Clone CI (OIDC WIF)
+    runs-on: ubuntu-latest
+
+    env:
+      # Non-sensitive addressing information — use vars.*, not secrets.*
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+      # Verified object names from Terraform (snowflake_foundation & snowflake_compute modules)
+      CI_DATABASE: COLORADO_CRIME_DB_DEV
+      CI_SCHEMA: CI_PR_${{ github.event.pull_request.number }}
+      CI_WAREHOUSE: TRANSFORMING_WH_DEV
+      CI_ROLE: CICD_ROLE
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python (for SQLFluff & Snowflake helper)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          # snowflake-connector-python >=3.17.0 required for WORKLOAD_IDENTITY authenticator
+          pip install sqlfluff "snowflake-connector-python>=3.17.0"
+
+      - name: Setup dbt Fusion Engine
+        uses: dbt-labs/setup-dbt-fusion@v1
+        with:
+          version: 'latest'
+
+      - name: Fetch GitHub OIDC Token
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // No custom audience — Snowflake WIF validates via issuer+subject match on the
+            // user's WORKLOAD_IDENTITY definition. The default GitHub audience is correct.
+            const token = await core.getIDToken();
+            core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
+            core.setSecret(token);
+
+      - name: Lint SQL
+        working-directory: ./include/dbt/dbt_project
+        run: sqlfluff lint models
+
+      - name: dbt Fusion dependencies
+        working-directory: ./include/dbt/dbt_project
+        run: dbt fusion deps
+
+      - name: Generate ephemeral profiles.yml (OIDC WIF — never committed)
+        run: |
+          mkdir -p $HOME/.dbt
+          # This file lives only on the runner for the duration of this job.
+          # profiles.yml in the repo stays key-pair only for human service users.
+          cat > $HOME/.dbt/profiles.yml <<EOF
+          dbt_project:
+            target: ci
+            outputs:
+              ci:
+                type: snowflake
+                account: "${SNOWFLAKE_ACCOUNT}"
+                user: "${SNOWFLAKE_USER}"
+                authenticator: WORKLOAD_IDENTITY
+                workload_identity_provider: OIDC
+                token: "${SNOWFLAKE_OIDC_TOKEN}"
+                database: "${CI_DATABASE}"
+                schema: "${CI_SCHEMA}"
+                warehouse: "${CI_WAREHOUSE}"
+                role: "${CI_ROLE}"
+                threads: 10
+                client_session_keep_alive: false
+          EOF
+
+      - name: Create Zero-Copy Clone Schema
+        run: |
+          python -c "
+          import os, snowflake.connector
+
+          conn = snowflake.connector.connect(
+              account=os.environ['SNOWFLAKE_ACCOUNT'],
+              user=os.environ['SNOWFLAKE_USER'],
+              authenticator='WORKLOAD_IDENTITY',
+              workload_identity_provider='OIDC',
+              token=os.environ['SNOWFLAKE_OIDC_TOKEN'],
+              role=os.environ['CI_ROLE'],
+              database=os.environ['CI_DATABASE'],
+          )
+          schema = os.environ['CI_SCHEMA']
+          src_db = os.environ['CI_DATABASE'].replace('DEV', 'PROD')
+
+          with conn.cursor() as cur:
+              print(f'Creating Zero-Copy Clone schema: {schema} from {src_db}.RAW')
+              cur.execute(
+                  f'CREATE SCHEMA IF NOT EXISTS {os.environ[\"CI_DATABASE\"]}.{schema} '
+                  f'CLONE {src_db}.RAW '
+                  f\"COMMENT = 'CI clone for PR #${{ github.event.pull_request.number }}'\"
+              )
+          conn.close()
+          print('Clone schema created successfully.')
+          "
+
+      - name: Run dbt Fusion Slim CI against Clone Schema
+        working-directory: ./include/dbt/dbt_project
+        run: |
+          dbt fusion build \
+            --profiles-dir $HOME/.dbt \
+            --select state:modified+ \
+            --defer \
+            --state ./state
+
+      - name: Drop Zero-Copy Clone Schema
+        if: always()
+        run: |
+          python -c "
+          import os, snowflake.connector
+
+          conn = snowflake.connector.connect(
+              account=os.environ['SNOWFLAKE_ACCOUNT'],
+              user=os.environ['SNOWFLAKE_USER'],
+              authenticator='WORKLOAD_IDENTITY',
+              workload_identity_provider='OIDC',
+              token=os.environ['SNOWFLAKE_OIDC_TOKEN'],
+              role=os.environ['CI_ROLE'],
+              database=os.environ['CI_DATABASE'],
+          )
+          schema = os.environ['CI_SCHEMA']
+
+          with conn.cursor() as cur:
+              print(f'Dropping Zero-Copy Clone schema: {schema}')
+              cur.execute(f'DROP SCHEMA IF EXISTS {os.environ[\"CI_DATABASE\"]}.{schema};')
+          conn.close()
+          print('Clone schema dropped successfully.')
+          "
