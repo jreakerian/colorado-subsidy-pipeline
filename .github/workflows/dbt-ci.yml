@@ -4,9 +4,16 @@ on:
   pull_request:
     paths:
       - 'include/dbt/dbt_project/**'
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'include/dbt/dbt_project/**'
+  workflow_dispatch:
 
 concurrency:
-  group: dbt-ci-pr-${{ github.event.pull_request.number }}
+  group: dbt-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
