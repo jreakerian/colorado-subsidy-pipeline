@@ -81,6 +81,11 @@ enriched as (
         s.principal_state,
         s.clean_zip_code,
 
+        s.dbt_valid_from                                            as valid_from,
+        s.dbt_valid_to                                              as valid_to,
+        s.is_current,
+        s.is_eligible,
+
         -- County resolution priority:
         --   1. ZIP lookup  → most reliable, ties the business to a specific county
         --   2. State field → last-resort fallback when ZIP is missing/invalid
@@ -88,16 +93,10 @@ enriched as (
 
         -- Prefer the lookup city (normalized) over the raw API city name to
         -- avoid county mismatches from typos in the source (e.g. "DENVERL")
-        coalesce(g.city, lower(trim(s.principal_city)))             as resolved_city,
+        coalesce(g.city, lower(trim(s.principal_city)))             as resolved_city
 
-        -- SCD2 temporal metadata
-        s.dbt_valid_from                                            as valid_from,
-        s.dbt_valid_to                                              as valid_to,
-        s.is_current,
-        s.is_eligible
-
-    from business_snapshot s
-    left join geo_lookup g
+    from business_snapshot as s
+    left join geo_lookup as g
         on s.clean_zip_code = g.zip_code
 
 ),
@@ -163,5 +162,5 @@ final as (
 select * from final
 order by
     is_current desc,
-    entity_status,
-    entity_id
+    entity_status asc,
+    entity_id asc
