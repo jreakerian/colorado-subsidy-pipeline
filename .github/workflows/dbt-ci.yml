@@ -21,9 +21,8 @@ jobs:
 
     env:
       # Reads from GitHub Variables first, falling back to Secrets if stored there
-      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER || secrets.SNOWFLAKE_USER }}
-      # Verified object names from Terraform (snowflake_foundation & snowflake_compute modules)
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT  }}
+      SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
       CI_DATABASE: COLORADO_CRIME_DB_DEV
       CI_SCHEMA: CI_PR_${{ github.event.pull_request.number }}
       CI_WAREHOUSE: TRANSFORMING_WH_DEV
