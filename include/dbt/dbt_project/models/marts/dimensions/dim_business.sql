@@ -17,7 +17,7 @@
 -- ── Macros ─────────────────────────────────────────────────────────────────────
 -- Centralise the zip validation pattern so it is defined once and referenced
 -- twice (clean_zip_code column + city_county_zip join predicate).
-{%- set zip_regex = '^\\d{5}(-\\d{4})?$' -%}
+{% set zip_regex = '^\\d{5}(-\\d{4})?$' %}
 
 with
 
