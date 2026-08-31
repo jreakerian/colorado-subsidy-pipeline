@@ -133,6 +133,7 @@ def business_entity_dag():
 
         """
         from airflow.sdk import Variable
+
         from include.eakerian.business_entity_helpers import (
             fetch_business_entity_data,
             land_raw_records,
