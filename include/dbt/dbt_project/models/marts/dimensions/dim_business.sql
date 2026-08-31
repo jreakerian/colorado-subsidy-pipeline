@@ -71,7 +71,7 @@ enriched as (
     select
         s.dbt_scd_id,
         s.entity_id,
-        s.entity_name,
+        coalesce(s.entity_name, 'Unknown') as entity_name,
         s.entity_status,
         s.entity_type,
         s.entity_form_date,
