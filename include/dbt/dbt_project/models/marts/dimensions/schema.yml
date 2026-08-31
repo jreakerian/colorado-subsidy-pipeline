@@ -194,5 +194,5 @@ models:
         tests: [not_null]
       - name: entity_status
         tests: [not_null]
-      - name: is_active
+      - name: is_current
         tests: [not_null]
