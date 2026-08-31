@@ -1,8 +1,8 @@
 #!/home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/bin/python3
 
-import sys
-import json
 import argparse
+import json
+import sys
 from pprint import pformat
 
 import jmespath
@@ -27,7 +27,7 @@ def main():
         sys.stdout.write('\n')
         return 0
     if args.filename:
-        with open(args.filename, 'r') as f:
+        with open(args.filename) as f:
             data = json.load(f)
     else:
         data = sys.stdin.read()
