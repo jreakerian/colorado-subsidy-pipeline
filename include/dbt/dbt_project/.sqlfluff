@@ -1,0 +1,37 @@
+[sqlfluff]
+templater = dbt
+dialect = snowflake
+max_line_length = 120
+ignore = parsing
+
+# Rules excluded:
+#  LT02 - indent: dbt templater renders {{ ref() }} into schema-qualified names
+#          whose lengths differ between local and CI environments, making indent
+#          violations un-fixable in a stable way. Indentation is enforced by
+#          code review instead.
+#  LT05 - long lines: acceptable given complex CASE expressions and ref() names
+#  LT01 - spacing: alignment whitespace in multi-column SELECT lists
+#  LT09 - select targets on new line: single-target SELECTs allowed inline
+#  LT12 - trailing newline: cosmetic, does not affect SQL correctness
+#  LT03 - trailing operators: team style preference
+#  AM04 - wildcard expansion: we explicitly select * from staging models
+#  RF03, RF04 - reference qualification: enforced in PR review
+exclude_rules = AM04, RF03, RF04, LT02, LT05, LT01, LT09, LT12, LT03
+
+[sqlfluff:templater:dbt]
+# project_dir = . because sqlfluff is invoked from this directory in CI:
+#   working-directory: ./include/dbt/dbt_project
+#   run: sqlfluff lint models
+project_dir = .
+# profiles_dir is NOT set here — overridden at runtime:
+#   Locally: DBT_PROFILES_DIR=. (key-pair auth in profiles.yml)
+#   CI:      DBT_PROFILES_DIR=$HOME/.dbt (ephemeral OIDC WIF profiles.yml)
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper
