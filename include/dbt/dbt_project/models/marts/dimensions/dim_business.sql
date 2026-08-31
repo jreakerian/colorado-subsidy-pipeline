@@ -71,7 +71,6 @@ enriched as (
     select
         s.dbt_scd_id,
         s.entity_id,
-        coalesce(s.entity_name, 'Unknown') as entity_name,
         s.entity_status,
         s.entity_type,
         s.entity_form_date,
@@ -80,11 +79,12 @@ enriched as (
         s.principal_city,
         s.principal_state,
         s.clean_zip_code,
-
         s.dbt_valid_from                                            as valid_from,
         s.dbt_valid_to                                              as valid_to,
         s.is_current,
         s.is_eligible,
+
+        coalesce(s.entity_name, 'Unknown')                          as entity_name,
 
         -- County resolution priority:
         --   1. ZIP lookup  → most reliable, ties the business to a specific county
