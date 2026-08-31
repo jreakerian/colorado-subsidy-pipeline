@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 import requests
 
@@ -53,7 +52,7 @@ log = logging.getLogger(__name__)
 def execute_sf_query(
     query: str,
     conn_id: str = "snowflake_default",
-    parameters: Optional[tuple | list] = None,
+    parameters: tuple | list | None = None,
     return_results: bool = False,
 ) -> list:
     """Execute a SQL statement against Snowflake via the Airflow SnowflakeHook.
@@ -216,10 +215,11 @@ def land_raw_records(
         log.info("No raw records to land for %s — skipping.", source_date)
         return
 
-    import pandas as pd
-    import boto3
     import os
-    
+
+    import boto3
+    import pandas as pd
+
     # Add metadata
     ingested_at = datetime.now(timezone.utc).isoformat()
     for r in raw_records:
