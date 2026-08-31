@@ -23,7 +23,7 @@ with
 
 -- Pull every historical version of each business entity from the SCD2 snapshot.
 
-snapshot as (
+business_snapshot as (
 
     select
         dbt_scd_id, -- dbt_scd_id is the unique surrogate key that identifies a specific version row.
@@ -96,7 +96,7 @@ enriched as (
         s.is_current,
         s.is_eligible
 
-    from snapshot s
+    from business_snapshot s
     left join geo_lookup g
         on s.clean_zip_code = g.zip_code
 
