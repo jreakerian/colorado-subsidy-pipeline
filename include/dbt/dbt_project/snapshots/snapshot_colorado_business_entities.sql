@@ -52,14 +52,7 @@ select
 
 from {{ source('bronze', 'colorado_business_entities') }}
 
--- Deduplicate within the source before snapshotting.
--- The bronze table is append-only (multiple rows per entity_id per day).
--- We keep only the most recently ingested record per entity to avoid
--- the snapshot treating the same-day duplicate as a new version.
-qualify row_number() over (
-    partition by entityid
-    order by _ingested_at desc
-) = 1
+
 
 -- NOTE: No ORDER BY here.
 -- dbt_valid_to (the basis for is_current) is a dbt-managed column appended
