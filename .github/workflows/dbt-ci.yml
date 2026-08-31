@@ -134,14 +134,17 @@ jobs:
           print('Clone schema created successfully.')
           "
 
-      - name: Run dbt Slim CI against Clone Schema
+      - name: Compile dbt project (generate manifest for slim CI state)
+        working-directory: ./include/dbt/dbt_project
+        run: |
+          dbt compile --profiles-dir $HOME/.dbt
+
+      - name: Run dbt build against Clone Schema
         working-directory: ./include/dbt/dbt_project
         run: |
           dbt build \
             --profiles-dir $HOME/.dbt \
-            --select state:modified+ \
-            --defer \
-            --state ./state
+            --full-refresh
 
       - name: Drop Zero-Copy Clone Schema
         if: always()
