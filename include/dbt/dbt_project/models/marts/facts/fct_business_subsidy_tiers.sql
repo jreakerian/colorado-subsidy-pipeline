@@ -46,7 +46,7 @@ joined as (
         b.principal_zip,
         b.entity_type,
         b.formation_date,
-        b.is_active,
+        b.is_current,
         g.geo_key,
 
         coalesce(ct.crime_rank, 0) as crime_tier,
