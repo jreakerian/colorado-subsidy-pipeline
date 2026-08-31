@@ -1,0 +1,59 @@
+name: dbt CD (Deploy to Production)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'include/dbt/dbt_project/**'
+
+jobs:
+  dbt-deploy:
+    name: dbt Deploy → Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: Write Snowflake Private Key
+        run: |
+          mkdir -p $HOME/.snowflake
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > $HOME/.snowflake/rsa_key.p8
+          chmod 600 $HOME/.snowflake/rsa_key.p8
+
+      - name: dbt dependencies
+        working-directory: ./include/dbt/dbt_project
+        run: dbt deps
+
+      - name: Check Source Freshness
+        working-directory: ./include/dbt/dbt_project
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
+          DBT_TARGET: prod
+        run: dbt source freshness
+
+      - name: dbt Full Production Build
+        working-directory: ./include/dbt/dbt_project
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
+          DBT_TARGET: prod
+        run: dbt build --target prod
+
+      - name: Upload production state artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-prod-state
+          path: ./include/dbt/dbt_project/target/
+          retention-days: 30
