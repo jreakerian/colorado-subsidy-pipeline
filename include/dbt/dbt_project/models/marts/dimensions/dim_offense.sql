@@ -31,7 +31,9 @@ final as (
         offense_category_name,
         offense_name,
         crime_against,
-        row_number() over (order by crime_against, offense_category_name, offense_name) as offense_key,
+        row_number()
+            over (order by crime_against, offense_category_name, offense_name)
+            as offense_key,
         coalesce(offense_group, 'Unknown') as offense_group
     from distinct_offenses
 )

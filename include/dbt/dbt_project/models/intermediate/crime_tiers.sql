@@ -20,7 +20,10 @@ county_crime_counts as (
         offense_category_name,
         count(*) as total_crimes
     from crimes
-    where offense_category_name in ('{{ var("crime_categories") | join("', '") }}')
+    where
+        offense_category_name in (
+            '{{ var("crime_categories") | join("', '") }}'
+        )
     group by county_name, offense_category_name
 ),
 
@@ -29,7 +32,9 @@ percentile_ranked as (
         county_name,
         offense_category_name,
         total_crimes,
-        percent_rank() over (partition by offense_category_name order by total_crimes) as crime_percentile
+        percent_rank()
+            over (partition by offense_category_name order by total_crimes)
+            as crime_percentile
     from county_crime_counts
 )
 

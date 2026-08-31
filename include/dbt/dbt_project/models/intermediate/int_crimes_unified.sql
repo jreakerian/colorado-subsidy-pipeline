@@ -116,7 +116,8 @@ final as (
         date_part('year', incident_date) as incident_year,
         date_part('month', incident_date) as incident_month,
         date_part('day', incident_date) as incident_day,
-        date_part('dow', incident_date) + 1 as day_of_week,  -- 1=Sunday, 7=Saturday (Snowflake DOW returns 0-6, shift by +1)
+        -- 1=Sunday, 7=Saturday (Snowflake DOW returns 0-6, shift by +1)
+        date_part('dow', incident_date) + 1 as day_of_week,
         iff(incident_hour between 6 and 17, 'day', 'night') as time_of_day,
         case date_part('month', incident_date)
             when 12 then 'winter' when 1 then 'winter' when 2 then 'winter'

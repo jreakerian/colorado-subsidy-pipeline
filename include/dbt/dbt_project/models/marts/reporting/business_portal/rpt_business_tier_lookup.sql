@@ -32,8 +32,12 @@ select
     qualifies_for_subsidy,
     notification_eligible,
     case composite_tier
-        when 4 then 'Your business qualifies for Maximum Security Subsidy under the B.A.S.E. program.'
-        when 3 then 'Your business qualifies for Enhanced Security Subsidy under the B.A.S.E. program.'
+        when
+            4
+            then 'Your business qualifies for Maximum Security Subsidy under the B.A.S.E. program.'
+        when
+            3
+            then 'Your business qualifies for Enhanced Security Subsidy under the B.A.S.E. program.'
         when 2 then 'Your business qualifies for Standard review under the B.A.S.E. program.'
         when 1 then 'Your business is eligible for Basic Review under the B.A.S.E. program.'
         else 'Tier not yet assigned. Please contact OEDIT.'
