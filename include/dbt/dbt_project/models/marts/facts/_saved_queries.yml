@@ -1,0 +1,30 @@
+version: 2
+
+saved_queries:
+  - name: county_crime_rate_annual
+    description: "Annual crime count by county — the most common BI query against fct_crimes."
+    query_params:
+      metrics:
+        - total_crimes
+      group_by:
+        - TimeDimension('metric_time', 'year')
+        - Dimension('geo__county_name')
+
+  - name: subsidy_eligibility_by_county
+    description: "Subsidy-qualifying business count by county — OEDIT's primary outreach metric."
+    query_params:
+      metrics:
+        - subsidy_qualifying_business_count
+        - business_count
+      group_by:
+        - Dimension('business__principal_county')
+
+  - name: income_population_by_county_annual
+    description: "Annual median household income and population by county — socioeconomic trend query."
+    query_params:
+      metrics:
+        - avg_median_household_income
+        - avg_total_population
+      group_by:
+        - TimeDimension('metric_time', 'year')
+        - Dimension('geo__county_name')

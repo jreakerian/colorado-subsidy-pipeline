@@ -1,0 +1,59 @@
+version: 2
+
+exposures:
+  - name: base_subsidy_portal
+    label: "B.A.S.E. Subsidy Portal"
+    type: application
+    maturity: high
+    description: >
+      Streamlit in Snowflake (SiS) application. Public-facing business lookup
+      and OEDIT admin dashboard for grant officers. Queries
+      RPT_BUSINESS_TIER_LOOKUP directly via Snowpark. The portal allows
+      businesses to check their subsidy tier eligibility in real-time.
+    url: "https://app.snowflake.com"
+    depends_on:
+      - ref('rpt_business_tier_lookup')
+      - ref('fct_business_subsidy_tiers')
+    owner:
+      name: eakerian
+      email: analytics@example.com
+
+  - name: dbt_docs_site
+    label: "dbt Documentation Site"
+    type: dashboard
+    maturity: high
+    description: >
+      Auto-generated dbt documentation published to GitHub Pages via the
+      dbt-docs.yml CI workflow. Provides full data lineage, model contracts,
+      column-level documentation, and semantic metric definitions for every
+      model in the pipeline.
+    url: "https://jreakerian.github.io/colorado-subsidy-pipeline"
+    depends_on:
+      - ref('dim_business')
+      - ref('dim_date')
+      - ref('dim_geography')
+      - ref('dim_offense')
+      - ref('dim_agency')
+      - ref('fct_crimes')
+      - ref('fct_income_population')
+      - ref('fct_business_subsidy_tiers')
+      - ref('rpt_business_tier_lookup')
+      - ref('rpt_county_agency_crime_baseline')
+    owner:
+      name: eakerian
+      email: analytics@example.com
+
+  - name: oedit_notification_pipeline
+    label: "OEDIT Automated Notification Pipeline"
+    type: ml
+    maturity: medium
+    description: >
+      Downstream OEDIT process that queries fct_business_subsidy_tiers to
+      identify notification_eligible businesses and trigger automated subsidy
+      application invitations. Operates on businesses where
+      notification_eligible = TRUE and is_current = TRUE.
+    depends_on:
+      - ref('fct_business_subsidy_tiers')
+    owner:
+      name:  eakerian
+      email: analytics@example.com
