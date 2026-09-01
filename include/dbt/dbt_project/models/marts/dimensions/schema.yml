@@ -14,6 +14,8 @@ models:
   - name: dim_date
     description: "Date dimension spanning 1997-2020. "
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'dimension']
     semantic_model:
       enabled: true
@@ -25,17 +27,20 @@ models:
       standard_granularity_column: date_day
     columns:
       - name: date_key
+        data_type: varchar
         tests: [not_null, unique]
         description: "String surrogate key in MM/DD/YYYY format; join key from fct_crimes."
         entity:
           name: date
           type: primary
       - name: date_day
+        data_type: date
         description: "The actual DATE value for this row."
         granularity: day
         dimension:
           type: time
       - name: full_date
+        data_type: varchar
         tests: [not_null, unique]
       # `year`, `quarter`, `month` are intentionally NOT exposed as MetricFlow
       # dimensions here — those exact names collide with reserved time
@@ -45,9 +50,13 @@ models:
       # `metric_time__month` (truncations of the date_day time dimension)
       # gives the same result without a dedicated column.
       - name: year
+        data_type: number(4,0)
         tests: [not_null]
       - name: quarter
+        data_type: number(2,0)
+        tests: [not_null]
       - name: month
+        data_type: number(2,0)
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -55,12 +64,15 @@ models:
                 min_value: 1
                 max_value: 12
       - name: month_name
+        data_type: varchar
         dimension:
           type: categorical
       - name: day_of_month
+        data_type: number(2,0)
         dimension:
           type: categorical
       - name: day_of_week
+        data_type: number(3,0)
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -70,15 +82,19 @@ models:
         dimension:
           type: categorical
       - name: day_name
+        data_type: varchar
         dimension:
           type: categorical
       - name: day_of_year
+        data_type: number(4,0)
         dimension:
           type: categorical
       - name: week_of_year
+        data_type: number(2,0)
         dimension:
           type: categorical
       - name: season
+        data_type: varchar
         tests:
           - not_null
           - accepted_values:
@@ -87,40 +103,50 @@ models:
         dimension:
           type: categorical
       - name: is_weekend
+        data_type: boolean
         dimension:
           type: categorical
 
   - name: dim_geography
     description: "Conformed geography dimension. One row per city+county or county-only entry. Provides surrogate keys for all geo joins."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'dimension']
     semantic_model:
       enabled: true
     columns:
       - name: geo_key
+        data_type: number(18,0)
         tests: [not_null, unique]
         entity:
           name: geo
           type: primary
       - name: city_name
+        data_type: varchar
         tests: [not_null]
         description: "City name or '[County Level]' for county-only rows"
         dimension:
           type: categorical
       - name: county_name
+        data_type: varchar
         tests: [not_null]
         dimension:
           type: categorical
       - name: zip_code
+        data_type: integer
         dimension:
           type: categorical
       - name: cent_lat
+        data_type: float
         dimension:
           type: categorical
       - name: cent_long
+        data_type: float
         dimension:
           type: categorical
       - name: state
+        data_type: varchar
         tests:
           - not_null
           - accepted_values:
@@ -132,23 +158,29 @@ models:
   - name: dim_offense
     description: "Offense dimension. One row per unique offense category + crime_against combination."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'dimension']
     semantic_model:
       enabled: true
     columns:
       - name: offense_key
+        data_type: number(18,0)
         tests: [not_null, unique]
         entity:
           name: offense
           type: primary
       - name: offense_category_name
+        data_type: varchar
         tests: [not_null]
         dimension:
           type: categorical
       - name: offense_name
+        data_type: varchar
         dimension:
           type: categorical
       - name: crime_against
+        data_type: varchar
         tests:
           - not_null
           - accepted_values:
@@ -157,26 +189,32 @@ models:
         dimension:
           type: categorical
       - name: offense_group
+        data_type: varchar
         dimension:
           type: categorical
 
   - name: dim_agency
     description: "Police agency dimension. Normalized agency names with their primary county."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'dimension']
     semantic_model:
       enabled: true
     columns:
       - name: agency_key
+        data_type: number(18,0)
         tests: [not_null, unique]
         entity:
           name: agency
           type: primary
       - name: agency_name
+        data_type: varchar
         tests: [not_null, unique]
         dimension:
           type: categorical
       - name: primary_county
+        data_type: varchar
         tests: [not_null]
         dimension:
           type: categorical
@@ -184,15 +222,49 @@ models:
   - name: dim_business
     description: "Colorado business entity dimension. Active businesses in good standing. Core for B.A.S.E. subsidy eligibility."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'dimension']
     columns:
       - name: business_key
+        data_type: string
         tests: [not_null, unique]
       - name: entity_id
+        data_type: number(38,0)
         tests: [not_null, unique]
       - name: entity_name
+        data_type: string
         tests: [not_null]
       - name: entity_status
+        data_type: string
         tests: [not_null]
       - name: is_current
+        data_type: boolean
         tests: [not_null]
+      - name: business_scd_id
+        data_type: string
+        tests: [not_null, unique]
+      - name: principal_zip
+        data_type: string
+      - name: entity_type
+        data_type: string
+      - name: formation_date
+        data_type: date
+      - name: is_eligible
+        data_type: boolean
+      - name: principal_city
+        data_type: string
+      - name: principal_state
+        data_type: string
+      - name: principal_county
+        data_type: string
+      - name: principal_address_1
+        data_type: string
+      - name : dw_updated_at
+        data_type: timestamp_tz
+      - name: jurisdiction
+        data_type: string
+      - name: valid_from
+        data_type: timestamp
+      - name: valid_to
+        data_type: timestamp
