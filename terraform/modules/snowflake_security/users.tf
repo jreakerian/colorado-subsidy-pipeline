@@ -65,17 +65,36 @@ resource "snowflake_service_user" "dbt_ci_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:development"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dev"
     }
   }
 }
 
+# CD-only dbt service account — GitHub Actions OIDC, prod environment
+resource "snowflake_service_user" "dbt_cd_svc" {
+  name              = "DBT_CD_SVC"
+  comment           = "CD-only dbt service account, prod builds and docs generation, WIF auth via GitHub Actions OIDC"
+  default_warehouse = var.transforming_warehouse_name
+  default_role      = snowflake_account_role.cicd_role.name
 
+  default_workload_identity {
+    oidc {
+      issuer  = "https://token.actions.githubusercontent.com"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:prod"
+    }
+  }
+}
 
 # Grant CICD_ROLE to the dbt CI service user
 resource "snowflake_grant_account_role" "grant_cicd_to_dbt_ci" {
   role_name = snowflake_account_role.cicd_role.name
   user_name = snowflake_service_user.dbt_ci_svc.name
+}
+
+# Grant CICD_ROLE to the dbt CD service user
+resource "snowflake_grant_account_role" "grant_cicd_to_dbt_cd" {
+  role_name = snowflake_account_role.cicd_role.name
+  user_name = snowflake_service_user.dbt_cd_svc.name
 }
 
 # Grant ANALYST_ROLE to BI service users
