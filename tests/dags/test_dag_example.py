@@ -40,7 +40,7 @@ def get_dags():
     Generate a tuple of dag_id, <DAG objects> in the DagBag
     """
     with suppress_logging("airflow"):
-        dag_bag = DagBag(include_examples=False)
+        dag_bag = DagBag()
 
     def strip_path_prefix(path):
         return os.path.relpath(path, os.environ.get("AIRFLOW_HOME"))
