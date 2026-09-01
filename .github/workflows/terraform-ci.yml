@@ -89,8 +89,6 @@ jobs:
             -var="snowflake_role=ACCOUNTADMIN" \
             -var="snowflake_private_key_path=$HOME/.snowflake/rsa_key.p8" \
             -var="private_key_passphrase=${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}" \
-            -var="airflow_service_password=${{ secrets.AIRFLOW_SERVICE_PASSWORD }}" \
-            -var="dbt_service_password=${{ secrets.DBT_SERVICE_PASSWORD }}" \
             -input=false \
             -no-color \
             -out=tfplan

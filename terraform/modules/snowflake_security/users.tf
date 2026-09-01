@@ -11,6 +11,10 @@ resource "snowflake_legacy_service_user" "airflow_service" {
   default_warehouse = var.loading_warehouse_name
   default_namespace = "${var.db_name}.${var.raw_schema_name}"
   comment           = "Service account for Airflow data loading"
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 
 # Service user for dbt (data transformation)
@@ -21,6 +25,10 @@ resource "snowflake_legacy_service_user" "dbt_service" {
   default_warehouse = var.transforming_warehouse_name
   default_namespace = "${var.db_name}.${var.silver_schema_name}"
   comment           = "Service account for dbt transformations"
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 
 # Grant LOADER_ROLE to the Airflow service user
@@ -43,6 +51,10 @@ resource "snowflake_legacy_service_user" "dbt_semantic_service" {
   default_warehouse = var.analytics_warehouse_name
   default_namespace = "${var.db_name}.${var.gold_schema_name}"
   comment           = "Service account for dbt Semantic Layer queries"
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 
 # Service user for Metabase (Phase 3 operational dashboards)
@@ -53,6 +65,10 @@ resource "snowflake_legacy_service_user" "metabase_service" {
   default_warehouse = var.analytics_warehouse_name
   default_namespace = "${var.db_name}.${var.gold_schema_name}"
   comment           = "Service account for Metabase operational queries"
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 
 # CI-only dbt service account — GitHub Actions OIDC, dev environment
