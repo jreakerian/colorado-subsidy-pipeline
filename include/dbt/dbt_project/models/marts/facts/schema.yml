@@ -233,6 +233,8 @@ models:
         data_type: varchar
       - name: principal_county
         data_type: varchar
+        dimension:
+          type: categorical
       - name: principal_zip
         data_type: varchar
       - name: entity_type
