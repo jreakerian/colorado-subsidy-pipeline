@@ -51,9 +51,9 @@ jobs:
           import os, textwrap
           profile = textwrap.dedent('''
           dbt_project:
-            target: dev
+            target: prod
             outputs:
-              dev:
+              prod:
                 type: snowflake
                 account: {account}
                 user: {user}
