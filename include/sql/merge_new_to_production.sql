@@ -22,7 +22,8 @@ USING (
         entitystatus,
         jurisdictonofformation,
         entitytype,
-        entityformdate
+        entityformdate,
+        _ingested_at
     FROM {raw_table}
     WHERE _source_date = '{yesterday}'
       AND entityid IS NOT NULL          -- guard: skip rows with no natural key
@@ -41,7 +42,8 @@ WHEN NOT MATCHED THEN
         entitystatus,
         jurisdictonofformation,
         entitytype,
-        entityformdate
+        entityformdate,
+        _ingested_at
     )
     VALUES (
         source.entityid,
@@ -55,5 +57,20 @@ WHEN NOT MATCHED THEN
         source.entitystatus,
         source.jurisdictonofformation,
         source.entitytype,
-        source.entityformdate
+        source.entityformdate,
+        source._ingested_at
     )
+WHEN MATCHED THEN
+    UPDATE SET
+        target.entityname = source.entityname,
+        target.principaladdress1 = source.principaladdress1,
+        target.principaladdress2 = source.principaladdress2,
+        target.principalcity = source.principalcity,
+        target.principalstate = source.principalstate,
+        target.principalzipcode = source.principalzipcode,
+        target.principalcountry = source.principalcountry,
+        target.entitystatus = source.entitystatus,
+        target.jurisdictonofformation = source.jurisdictonofformation,
+        target.entitytype = source.entitytype,
+        target.entityformdate = source.entityformdate,
+        target._ingested_at = source._ingested_at

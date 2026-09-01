@@ -9,7 +9,15 @@ sources:
     description: "Raw (bronze) tables loaded from various Colorado government data sources."
     tables:
       - name: colorado_business_entities
-        description: "Business entity registrations from Colorado Department of State"
+        description: "Deduplicated business entity registrations"
+
+      - name: colorado_business_entities_raw
+        description: "Append-only raw API responses from data.colorado.gov."
+        config:
+          loaded_at_field: _ingested_at
+          freshness:
+            warn_after: {count: 24, period: hour}
+            error_after: {count: 48, period: hour}
 
       - name: colorado_county_coordinates
         description: "County centroid coordinates from CDPHE"

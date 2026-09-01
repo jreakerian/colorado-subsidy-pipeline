@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 import requests
 
@@ -53,7 +52,7 @@ log = logging.getLogger(__name__)
 def execute_sf_query(
     query: str,
     conn_id: str = "snowflake_default",
-    parameters: Optional[tuple | list] = None,
+    parameters: tuple | list | None = None,
     return_results: bool = False,
 ) -> list:
     """Execute a SQL statement against Snowflake via the Airflow SnowflakeHook.
@@ -216,20 +215,40 @@ def land_raw_records(
         log.info("No raw records to land for %s — skipping.", source_date)
         return
 
-    rows = [_raw_record_to_tuple(r, source_date) for r in raw_records]
+    import os
 
-    insert_sql = f"""
-        INSERT INTO {raw_table} (
-            entityid, entityname, principaladdress1, principaladdress2,
-            principalcity, principalstate, principalzipcode, principalcountry,
-            entitystatus, jurisdictonofformation, entitytype, entityformdate,
-            _ingested_at, _source_date
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    import boto3
+    import pandas as pd
+
+    # Add metadata
+    ingested_at = datetime.now(timezone.utc).isoformat()
+    for r in raw_records:
+        r["_ingested_at"] = ingested_at
+        r["_source_date"] = source_date
+
+    # Write to Parquet
+    df = pd.DataFrame(raw_records)
+    parquet_file = f"/tmp/business_entities_{source_date}.parquet"
+    df.to_parquet(parquet_file, index=False)
+
+    # Upload to S3
+    s3_bucket = os.getenv("S3_BUCKET_NAME", "colorado-subsidy-lakehouse")
+    s3_key = f"raw/colorado_business_entities/source_date={source_date}/data.parquet"
+    s3_client = boto3.client("s3")
+    s3_client.upload_file(parquet_file, s3_bucket, s3_key)
+    log.info("Uploaded to S3: s3://%s/%s", s3_bucket, s3_key)
+
+    # COPY INTO Snowflake
+    copy_sql = f"""
+        COPY INTO {raw_table}
+        FROM @my_ext_stage/{s3_key}
+        FILE_FORMAT = (TYPE = PARQUET)
+        MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
     """
-    execute_sf_many(insert_sql, rows, conn_id=conn_id)
+    execute_sf_query(copy_sql, conn_id=conn_id)
     log.info(
-        "Landed %d raw records into %s (source_date=%s)",
-        len(rows), raw_table, source_date,
+        "Landed %d raw records into %s (source_date=%s) via COPY INTO",
+        len(raw_records), raw_table, source_date,
     )
 
 

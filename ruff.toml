@@ -1,0 +1,50 @@
+# Ruff configuration for colorado-subsidy-pipeline
+# https://docs.astral.sh/ruff/configuration/
+
+# Exclude virtual environments, generated files, and vendored code entirely
+exclude = [
+    "dbt-env",
+    ".venv",
+    "venv",
+    "venv2",
+    ".astro",
+    "include/dbt/dbt_project/dbt_packages",
+    ".git",
+    "__pycache__",
+    "*.pyc",
+    "dist",
+    "build",
+    ".eggs",
+]
+
+line-length = 100
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "TRY002",  # allow generic Exception raises (common in Airflow test scaffolding)
+    "RUF012",  # mutable class attributes — too noisy in generated/vendored code
+    "SIM102",  # nested if → and (style preference)
+    "E501",    # line too long — handled by formatter, not checker
+]
+
+[lint.per-file-ignores]
+# Airflow test scaffold — auto-generated, marked DO NOT EDIT
+".astro/*" = ["ALL"]
+# Test files — slightly more relaxed
+"tests/*" = ["E501", "F401"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

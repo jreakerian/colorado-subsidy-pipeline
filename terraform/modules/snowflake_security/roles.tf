@@ -14,6 +14,13 @@ resource "snowflake_account_role" "analyst_role" {
   comment = "Role for data analysis and reporting"
 }
 
+resource "snowflake_account_role" "cicd_role" {
+  name    = "CICD_ROLE"
+  comment = "Role for cicd  deployments via GitHub Actions"
+}
+
+
+
 # Role hierarchy: TRANSFORMER inherits LOADER, ANALYST inherits TRANSFORMER
 resource "snowflake_grant_account_role" "transformer_inherits_loader" {
   role_name        = snowflake_account_role.loader_role.name
@@ -23,6 +30,11 @@ resource "snowflake_grant_account_role" "transformer_inherits_loader" {
 resource "snowflake_grant_account_role" "analyst_inherits_transformer" {
   role_name        = snowflake_account_role.transformer_role.name
   parent_role_name = snowflake_account_role.analyst_role.name
+}
+
+resource "snowflake_grant_account_role" "cicd_inherits_transformer" {
+  role_name        = snowflake_account_role.transformer_role.name
+  parent_role_name = snowflake_account_role.cicd_role.name
 }
 
 # Grant all custom functional roles to system SYSADMIN role
@@ -39,6 +51,29 @@ resource "snowflake_grant_account_role" "transformer_to_sysadmin" {
 resource "snowflake_grant_account_role" "analyst_to_sysadmin" {
   role_name        = snowflake_account_role.analyst_role.name
   parent_role_name = "SYSADMIN"
+}
+
+# Grant CICD_ROLE to SYSADMIN so it can be managed
+resource "snowflake_grant_account_role" "cicd_to_sysadmin" {
+  role_name        = snowflake_account_role.cicd_role.name
+  parent_role_name = "SYSADMIN"
+}
+
+# Grant CREATE DATABASE to TRANSFORMER_ROLE at the account level.
+resource "snowflake_grant_privileges_to_account_role" "transformer_create_db" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  privileges        = ["CREATE DATABASE"]
+  on_account        = true
+}
+
+# Grant CREATE SCHEMA on the project database to CICD_ROLE.
+resource "snowflake_grant_privileges_to_account_role" "grant_create_schema" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["CREATE SCHEMA"]
+  on_account_object {
+    object_type = "DATABASE"
+    object_name = var.db_name
+  }
 }
 
 # ── DATABASE GRANTS ───────────────────────────────────────────────────────────────
@@ -237,4 +272,21 @@ resource "terraform_data" "csv_format_guard" {
 
 resource "terraform_data" "parquet_format_guard" {
   input = var.parquet_file_format_name
+}
+resource "snowflake_grant_privileges_to_account_role" "cicd_db_usage" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["USAGE"]
+  on_account_object {
+    object_type = "DATABASE"
+    object_name = var.db_name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_warehouse_usage" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["USAGE"]
+  on_account_object {
+    object_type = "WAREHOUSE"
+    object_name = var.transforming_warehouse_name
+  }
 }

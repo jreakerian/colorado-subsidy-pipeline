@@ -11,19 +11,22 @@ resource "snowflake_database" "colorado_crime_db" {
 }
 
 resource "snowflake_schema" "raw" {
-  database = snowflake_database.colorado_crime_db.name
-  name     = "RAW"
-  comment  = "Raw data landing zone (${var.environment})"
+  database     = snowflake_database.colorado_crime_db.name
+  name         = "RAW"
+  is_transient = false
+  comment      = "Raw data landing zone (${var.environment})"
 }
 
 resource "snowflake_schema" "silver" {
-  database = snowflake_database.colorado_crime_db.name
-  name     = "SILVER"
-  comment  = "Cleaned and validated data (${var.environment})"
+  database     = snowflake_database.colorado_crime_db.name
+  name         = "SILVER"
+  is_transient = false
+  comment      = "Cleaned and validated data (${var.environment})"
 }
 
 resource "snowflake_schema" "gold" {
-  database = snowflake_database.colorado_crime_db.name
-  name     = "GOLD"
-  comment  = "Business-ready aggregated data (${var.environment})"
+  database     = snowflake_database.colorado_crime_db.name
+  name         = "GOLD"
+  is_transient = false
+  comment      = "Business-ready aggregated data (${var.environment})"
 }
