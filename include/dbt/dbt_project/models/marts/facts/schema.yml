@@ -122,11 +122,15 @@ models:
               arguments:
                 min_value: 1
       - name: median_household_income
+        data_type: NUMBER(38,6)
       - name: per_capita_income
+        data_type: NUMBER(38,6)
       - name: total_personal_income
+        data_type: NUMBER(38,6)
       - name: population_yoy_change
         description: "Year-over-year absolute change in population"
       - name: population_growth_pct
+        data_type: NUMBER(38,6)
         description: "Year-over-year % population growth (used for >10% growth KPI)"
 
     primary_entity: county_year
