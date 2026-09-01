@@ -146,22 +146,26 @@ variable "airflow_service_password" {
   description = "Password for the Airflow service user in Snowflake."
   type        = string
   sensitive   = true
+  default     = "dummy_password"
 }
 
 variable "dbt_service_password" {
   description = "Password for the dbt service user in Snowflake."
   type        = string
   sensitive   = true
+  default     = "dummy_password"
 }
 
 variable "dbt_semantic_service_password" {
   description = "Password for the dbt Semantic Layer service user in Snowflake."
   type        = string
   sensitive   = true
+  default     = "dummy_password"
 }
 
 variable "metabase_service_password" {
   description = "Password for the Metabase service user in Snowflake."
   type        = string
   sensitive   = true
+  default     = "dummy_password"
 }
