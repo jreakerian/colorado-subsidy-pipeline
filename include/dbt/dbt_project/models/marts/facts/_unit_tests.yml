@@ -1,0 +1,70 @@
+unit_tests:
+  - name: test_fct_business_subsidy_tiers_qualification
+    description: >
+      Verifies that composite tier >= 3 results in qualifies_for_subsidy = true.
+      Verifies tier < 3 results in false.
+      Verifies unranked counties (tier = 0) are filtered out completely.
+    model: fct_business_subsidy_tiers
+    given:
+      - input: ref('dim_business')
+        format: csv
+        rows: |
+          business_key,entity_id,entity_name,principal_city,principal_county,principal_zip,entity_type,formation_date,is_current
+          key_1,100,Denver Business,Denver,Denver,80202,LLC,2020-01-01,true
+          key_2,200,Boulder Business,Boulder,Boulder,80301,LLC,2020-01-01,true
+          key_3,300,Unknown Business,Nowhere,Nowhere,99999,LLC,2020-01-01,true
+      - input: ref('final_county_tier_rank')
+        format: csv
+        rows: |
+          county,crime_rank,income_rank,population_rank,final_rank
+          Denver,4,4,4,4.0
+          Boulder,2,2,2,2.0
+      - input: ref('dim_geography')
+        format: csv
+        rows: |
+          geo_key,county_name,city_name
+          geo_1,Denver,[County Level]
+          geo_2,Boulder,[County Level]
+    expect:
+      format: csv
+      rows: |
+        business_key,entity_id,principal_county,composite_tier,qualifies_for_subsidy,subsidy_tier_label,notification_eligible
+        key_1,100,Denver,4,true,Tier 4 - Maximum Subsidy,true
+        key_2,200,Boulder,2,false,Tier 2 - Standard Subsidy,false
+
+  - name: test_fct_crimes_grain
+    description: >
+      Verifies the fact table grain is 1 row per incident, crime_count is exactly 1,
+      and all dimension surrogate keys resolve correctly via left joins.
+    model: fct_crimes
+    given:
+      - input: ref('int_crimes_unified')
+        format: csv
+        rows: |
+          incident_date,county_name,agency_name,offense_category_name,offense_name,crime_against,incident_hour,time_of_day,age_num,source_period
+          2020-01-01,Denver,Denver PD,Assault,Aggravated Assault,Person,14,Afternoon,25,2020
+      - input: ref('dim_date')
+        format: csv
+        rows: |
+          date_key,full_date,date_day
+          20200101,2020-01-01,2020-01-01
+      - input: ref('dim_agency')
+        format: csv
+        rows: |
+          agency_key,agency_name,primary_county
+          1,Denver PD,Denver
+      - input: ref('dim_offense')
+        format: csv
+        rows: |
+          offense_key,offense_category_name,offense_name,crime_against,offense_group
+          1,Assault,Aggravated Assault,Person,Violent Crime
+      - input: ref('dim_geography')
+        format: csv
+        rows: |
+          geo_key,county_name,city_name,zip_code
+          1,Denver,[County Level],
+    expect:
+      format: csv
+      rows: |
+        incident_date,incident_hour,time_of_day,age_num,source_period,date_key,geo_key,offense_key,agency_key,crime_count
+        2020-01-01,14,Afternoon,25,2020,20200101,1,1,1,1

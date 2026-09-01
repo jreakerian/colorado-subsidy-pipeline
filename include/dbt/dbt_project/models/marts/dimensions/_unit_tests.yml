@@ -1,0 +1,79 @@
+unit_tests:
+  - name: test_dim_business_is_current_derivation
+    description: >
+      Verifies that is_current is TRUE only when dbt_valid_to IS NULL.
+      Also verifies that the geo lookup correctly resolves the county from the zip code seed.
+    model: dim_business
+    given:
+      - input: ref('snapshot_colorado_business_entities')
+        format: csv
+        rows: |
+          dbt_scd_id,entity_id,entity_name,entity_status,entity_type,entity_form_date,jurisdiction_of_formation,principal_address_1,principal_city,principal_state,principal_zip_code,dbt_valid_from,dbt_valid_to
+          old_hash,1001,Acme Corp,Good Standing,LLC,2020-01-15,Colorado,123 Main St,Denver,Denver,80202,2023-01-01 00:00:00,2024-06-01 00:00:00
+          new_hash,1001,Acme Corp LLC,Good Standing,LLC,2020-01-15,Colorado,123 Main St,Denver,Denver,80202,2024-06-01 00:00:00,
+      - input: ref('colorado_city_county_zip')
+        format: csv
+        rows: |
+          zip_code,city,county
+          80202,Denver,Denver
+    expect:
+      format: csv
+      rows: |
+        entity_id,is_current,principal_county,entity_name,is_eligible
+        1001,true,denver,Acme Corp LLC,true
+        1001,false,denver,Acme Corp,true
+
+  - name: test_dim_business_null_entity_name
+    description: >
+      Verifies that a null entity_name in the snapshot is coalesced
+      to 'Unknown' in the final output.
+    model: dim_business
+    given:
+      - input: ref('snapshot_colorado_business_entities')
+        format: csv
+        rows: |
+          dbt_scd_id,entity_id,entity_name,entity_status,entity_type,entity_form_date,jurisdiction_of_formation,principal_address_1,principal_city,principal_state,principal_zip_code,dbt_valid_from,dbt_valid_to
+          ccc,9999,,Good Standing,Corporation,2019-05-01,Colorado,,Boulder,Boulder,80301,2023-01-01 00:00:00,
+      - input: ref('colorado_city_county_zip')
+        format: csv
+        rows: |
+          zip_code,city,county
+          80301,Boulder,Boulder
+    expect:
+      format: csv
+      rows: |
+        entity_id,entity_name,is_current
+        9999,Unknown,true
+  
+  - name: test_fct_business_subsidy_tiers_qualification
+    description: >
+      Verifies that composite tier >= 3 results in qualifies_for_subsidy = true.
+      Verifies tier < 3 results in false.
+      Verifies unranked counties (tier = 0) are filtered out completely.
+    model: fct_business_subsidy_tiers
+    given:
+      - input: ref('dim_business')
+        format: csv
+        rows: |
+          business_key,entity_id,entity_name,principal_city,principal_county,principal_zip,entity_type,formation_date,is_current
+          key_1,100,Denver Business,Denver,Denver,80202,LLC,2020-01-01,true
+          key_2,200,Boulder Business,Boulder,Boulder,80301,LLC,2020-01-01,true
+          key_3,300,Unknown Business,Nowhere,Nowhere,99999,LLC,2020-01-01,true
+      - input: ref('final_county_tier_rank')
+        format: csv
+        rows: |
+          county,crime_rank,income_rank,population_rank,final_rank
+          Denver,4,4,4,4.0
+          Boulder,2,2,2,2.0
+      - input: ref('dim_geography')
+        format: csv
+        rows: |
+          geo_key,county_name,city_name
+          geo_1,Denver,[County Level]
+          geo_2,Boulder,[County Level]
+    expect:
+      format: csv
+      rows: |
+        business_key,entity_id,principal_county,composite_tier,qualifies_for_subsidy,subsidy_tier_label,notification_eligible
+        key_1,100,Denver,4,true,Tier 4 - Maximum Subsidy,true
+        key_2,200,Boulder,2,false,Tier 2 - Standard Subsidy,false
