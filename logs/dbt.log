@@ -1,0 +1,356 @@
+[0m22:49:52.323160 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4efb6270>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4ea8c140>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4efb4da0>]}
+
+
+============================== 22:49:52.326702 | d5a1abb2-87de-4f02-a2f2-5d9287f08a19 ==============================
+[0m22:49:52.326702 [info ] [MainThread]: Running with dbt=1.11.12
+[0m22:49:52.327370 [debug] [MainThread]: running dbt with arguments {'no_print': 'None', 'log_cache_events': 'False', 'static_parser': 'True', 'write_json': 'True', 'introspect': 'True', 'warn_error': 'None', 'send_anonymous_usage_stats': 'True', 'indirect_selection': 'eager', 'debug': 'False', 'printer_width': '80', 'quiet': 'False', 'invocation_command': 'dbt init dbt_project', 'use_colors': 'True', 'empty': 'None', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'version_check': 'True', 'cache_selected_only': 'False', 'log_path': 'logs', 'profiles_dir': '/home/eakerian/.dbt', 'use_experimental_parser': 'False', 'fail_fast': 'False', 'partial_parse': 'True', 'log_format': 'default'}
+[0m22:49:52.336797 [debug] [MainThread]: Starter project path: /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/lib/python3.12/site-packages/dbt/include/starter_project
+[0m22:49:52.339486 [info ] [MainThread]: 
+Your new dbt project "dbt_project" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m22:49:52.340050 [info ] [MainThread]: Setting up your profile.
+[0m22:50:04.313589 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m22:50:04.313990 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m22:50:04.314302 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m22:58:56.265092 [info ] [MainThread]: Profile dbt_project written to /home/eakerian/.dbt/profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m22:58:56.266246 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 543.9891, "process_in_blocks": "8", "process_kernel_time": 0.072061, "process_mem_max_rss": "129948", "process_out_blocks": "80", "process_user_time": 1.092851}
+[0m22:58:56.267010 [debug] [MainThread]: Command `dbt init` succeeded at 22:58:56.266900 after 543.99 seconds
+[0m22:58:56.267446 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4f4a5580>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4d1f16a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x76aa4cc1b1d0>]}
+[0m22:58:56.267906 [debug] [MainThread]: Flushing usage events
+[0m22:58:56.870936 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m22:59:02.898973 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c9b09070>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c8e474d0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c972f980>]}
+
+
+============================== 22:59:02.901533 | 8889962e-26fc-4f1b-8e31-51466476eb16 ==============================
+[0m22:59:02.901533 [info ] [MainThread]: Running with dbt=1.11.12
+[0m22:59:02.901929 [debug] [MainThread]: running dbt with arguments {'indirect_selection': 'eager', 'version_check': 'True', 'fail_fast': 'False', 'cache_selected_only': 'False', 'warn_error': 'None', 'quiet': 'False', 'static_parser': 'True', 'log_format': 'default', 'target_path': 'None', 'log_path': 'logs', 'use_experimental_parser': 'False', 'invocation_command': 'dbt debug', 'introspect': 'True', 'send_anonymous_usage_stats': 'True', 'printer_width': '80', 'empty': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'use_colors': 'True', 'debug': 'False', 'profiles_dir': '/home/eakerian/.dbt', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'no_print': 'None'}
+[0m22:59:02.907211 [info ] [MainThread]: dbt version: 1.11.12
+[0m22:59:02.907534 [info ] [MainThread]: python version: 3.12.3
+[0m22:59:02.907741 [info ] [MainThread]: python path: /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/bin/python3
+[0m22:59:02.907941 [info ] [MainThread]: os info: Linux-7.0.11-76070011-generic-x86_64-with-glibc2.39
+[0m22:59:03.044166 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m22:59:03.044653 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m22:59:03.044933 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m22:59:03.087662 [info ] [MainThread]: Using profiles dir at /home/eakerian/.dbt
+[0m22:59:03.088068 [info ] [MainThread]: Using profiles.yml file at /home/eakerian/.dbt/profiles.yml
+[0m22:59:03.088287 [info ] [MainThread]: Using dbt_project.yml file at /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml
+[0m22:59:03.088615 [info ] [MainThread]: adapter type: snowflake
+[0m22:59:03.088857 [info ] [MainThread]: adapter version: 1.11.6
+[0m22:59:03.089057 [info ] [MainThread]: Configuration:
+[0m22:59:03.089236 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m22:59:03.089410 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m22:59:03.089578 [info ] [MainThread]: Required dependencies:
+[0m22:59:03.089767 [debug] [MainThread]: Executing "git --help"
+[0m22:59:03.096525 [debug] [MainThread]: STDOUT: "b"usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           [--config-env=<name>=<envvar>] <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone     Clone a repository into a new directory\n   init      Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add       Add file contents to the index\n   mv        Move or rename a file, a directory, or a symlink\n   restore   Restore working tree files\n   rm        Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect    Use binary search to find the commit that introduced a bug\n   diff      Show changes between commits, commit and working tree, etc\n   grep      Print lines matching a pattern\n   log       Show commit logs\n   show      Show various types of objects\n   status    Show the working tree status\n\ngrow, mark and tweak your common history\n   branch    List, create, or delete branches\n   commit    Record changes to the repository\n   merge     Join two or more development histories together\n   rebase    Reapply commits on top of another base tip\n   reset     Reset current HEAD to the specified state\n   switch    Switch branches\n   tag       Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch     Download objects and refs from another repository\n   pull      Fetch from and integrate with another repository or a local branch\n   push      Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m22:59:03.096883 [debug] [MainThread]: STDERR: "b''"
+[0m22:59:03.097091 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m22:59:03.097300 [info ] [MainThread]: Connection:
+[0m22:59:03.097520 [info ] [MainThread]:   account: EEB51968
+[0m22:59:03.097702 [info ] [MainThread]:   user: cashalot1
+[0m22:59:03.097878 [info ] [MainThread]:   database: COLORADO_CRIME_DB_DEV
+[0m22:59:03.098057 [info ] [MainThread]:   warehouse: TRANSFORM_WH
+[0m22:59:03.098229 [info ] [MainThread]:   role: ACCOUNTADMIN
+[0m22:59:03.098400 [info ] [MainThread]:   schema: RAW_DEV
+[0m22:59:03.098574 [info ] [MainThread]:   authenticator: None
+[0m22:59:03.098736 [info ] [MainThread]:   oauth_client_id: None
+[0m22:59:03.098897 [info ] [MainThread]:   query_tag: None
+[0m22:59:03.099058 [info ] [MainThread]:   client_session_keep_alive: False
+[0m22:59:03.099217 [info ] [MainThread]:   host: None
+[0m22:59:03.099390 [info ] [MainThread]:   port: None
+[0m22:59:03.099568 [info ] [MainThread]:   proxy_host: None
+[0m22:59:03.099737 [info ] [MainThread]:   proxy_port: None
+[0m22:59:03.099902 [info ] [MainThread]:   protocol: None
+[0m22:59:03.100062 [info ] [MainThread]:   connect_retries: 1
+[0m22:59:03.100221 [info ] [MainThread]:   connect_timeout: None
+[0m22:59:03.100387 [info ] [MainThread]:   retry_on_database_errors: False
+[0m22:59:03.100563 [info ] [MainThread]:   retry_all: False
+[0m22:59:03.100728 [info ] [MainThread]:   insecure_mode: False
+[0m22:59:03.100888 [info ] [MainThread]:   reuse_connections: True
+[0m22:59:03.101049 [info ] [MainThread]:   s3_stage_vpce_dns_name: None
+[0m22:59:03.101213 [info ] [MainThread]:   platform_detection_timeout_seconds: 0.0
+[0m22:59:03.101515 [info ] [MainThread]: Registered adapter: snowflake=1.11.6
+[0m22:59:03.147626 [debug] [MainThread]: Acquiring new snowflake connection 'debug'
+[0m22:59:03.214891 [debug] [MainThread]: Using snowflake connection "debug"
+[0m22:59:03.215273 [debug] [MainThread]: On debug: select 1 as id
+[0m22:59:03.215514 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m22:59:03.215844 [debug] [MainThread]: Snowflake adapter: Error running SQL: select 1 as id
+[0m22:59:03.216069 [debug] [MainThread]: Snowflake adapter: Rolling back transaction.
+[0m22:59:03.216308 [info ] [MainThread]:   Connection test: [[31mERROR[0m]
+
+[0m22:59:03.216585 [info ] [MainThread]: [31m2 checks failed:[0m
+[0m22:59:03.216802 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml> not found
+
+[0m22:59:03.217004 [info ] [MainThread]: dbt was unable to connect to the specified database.
+The database returned the following error:
+
+  >Database Error
+  [Errno 2] No such file or directory: '../rsa_key.p8'
+
+Check your database credentials and try again. For more information, visit:
+https://docs.getdbt.com/docs/configure-your-profile
+
+
+[0m22:59:03.217683 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 0.35944143, "process_in_blocks": "0", "process_kernel_time": 0.08702, "process_mem_max_rss": "136140", "process_out_blocks": "16", "process_user_time": 1.179273}
+[0m22:59:03.218251 [debug] [MainThread]: Command `dbt debug` failed at 22:59:03.218174 after 0.36 seconds
+[0m22:59:03.218533 [debug] [MainThread]: Connection 'debug' was left open.
+[0m22:59:03.218756 [debug] [MainThread]: On debug: No close available on handle
+[0m22:59:03.218992 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c9881dc0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c6ebc440>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7408c87e4f80>]}
+[0m22:59:03.219294 [debug] [MainThread]: Flushing usage events
+[0m22:59:03.377707 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m23:16:20.437156 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x738483ca9550>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x738485678b90>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x73848348e360>]}
+
+
+============================== 23:16:20.439493 | 41eff023-a519-4ea9-b36c-9d092dc2131a ==============================
+[0m23:16:20.439493 [info ] [MainThread]: Running with dbt=1.11.12
+[0m23:16:20.439861 [debug] [MainThread]: running dbt with arguments {'log_path': 'logs', 'warn_error': 'None', 'cache_selected_only': 'False', 'write_json': 'True', 'static_parser': 'True', 'profiles_dir': '/home/eakerian/.dbt', 'no_print': 'None', 'quiet': 'False', 'invocation_command': 'dbt debug', 'version_check': 'True', 'indirect_selection': 'eager', 'fail_fast': 'False', 'use_experimental_parser': 'False', 'printer_width': '80', 'debug': 'False', 'send_anonymous_usage_stats': 'True', 'use_colors': 'True', 'introspect': 'True', 'log_cache_events': 'False', 'log_format': 'default', 'empty': 'None', 'target_path': 'None', 'partial_parse': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])'}
+[0m23:16:20.445044 [info ] [MainThread]: dbt version: 1.11.12
+[0m23:16:20.445314 [info ] [MainThread]: python version: 3.12.3
+[0m23:16:20.445542 [info ] [MainThread]: python path: /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/bin/python3
+[0m23:16:20.445745 [info ] [MainThread]: os info: Linux-7.0.11-76070011-generic-x86_64-with-glibc2.39
+[0m23:16:20.581079 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m23:16:20.581503 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m23:16:20.581762 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m23:16:20.623815 [info ] [MainThread]: Using profiles dir at /home/eakerian/.dbt
+[0m23:16:20.624207 [info ] [MainThread]: Using profiles.yml file at /home/eakerian/.dbt/profiles.yml
+[0m23:16:20.624434 [info ] [MainThread]: Using dbt_project.yml file at /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml
+[0m23:16:20.624733 [info ] [MainThread]: adapter type: snowflake
+[0m23:16:20.624933 [info ] [MainThread]: adapter version: 1.11.6
+[0m23:16:20.625131 [info ] [MainThread]: Configuration:
+[0m23:16:20.625318 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m23:16:20.625509 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m23:16:20.625676 [info ] [MainThread]: Required dependencies:
+[0m23:16:20.625865 [debug] [MainThread]: Executing "git --help"
+[0m23:16:20.627643 [debug] [MainThread]: STDOUT: "b"usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           [--config-env=<name>=<envvar>] <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone     Clone a repository into a new directory\n   init      Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add       Add file contents to the index\n   mv        Move or rename a file, a directory, or a symlink\n   restore   Restore working tree files\n   rm        Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect    Use binary search to find the commit that introduced a bug\n   diff      Show changes between commits, commit and working tree, etc\n   grep      Print lines matching a pattern\n   log       Show commit logs\n   show      Show various types of objects\n   status    Show the working tree status\n\ngrow, mark and tweak your common history\n   branch    List, create, or delete branches\n   commit    Record changes to the repository\n   merge     Join two or more development histories together\n   rebase    Reapply commits on top of another base tip\n   reset     Reset current HEAD to the specified state\n   switch    Switch branches\n   tag       Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch     Download objects and refs from another repository\n   pull      Fetch from and integrate with another repository or a local branch\n   push      Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m23:16:20.628135 [debug] [MainThread]: STDERR: "b''"
+[0m23:16:20.628580 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m23:16:20.628859 [info ] [MainThread]: Connection:
+[0m23:16:20.629074 [info ] [MainThread]:   account: EEB51968
+[0m23:16:20.629257 [info ] [MainThread]:   user: cashalot1
+[0m23:16:20.629447 [info ] [MainThread]:   database: COLORADO_CRIME_DB_DEV
+[0m23:16:20.629624 [info ] [MainThread]:   warehouse: TRANSFORM_WH
+[0m23:16:20.629791 [info ] [MainThread]:   role: ACCOUNTADMIN
+[0m23:16:20.629962 [info ] [MainThread]:   schema: RAW_DEV
+[0m23:16:20.630133 [info ] [MainThread]:   authenticator: None
+[0m23:16:20.630302 [info ] [MainThread]:   oauth_client_id: None
+[0m23:16:20.630485 [info ] [MainThread]:   query_tag: None
+[0m23:16:20.630656 [info ] [MainThread]:   client_session_keep_alive: False
+[0m23:16:20.630821 [info ] [MainThread]:   host: None
+[0m23:16:20.630994 [info ] [MainThread]:   port: None
+[0m23:16:20.631168 [info ] [MainThread]:   proxy_host: None
+[0m23:16:20.631339 [info ] [MainThread]:   proxy_port: None
+[0m23:16:20.631513 [info ] [MainThread]:   protocol: None
+[0m23:16:20.631691 [info ] [MainThread]:   connect_retries: 1
+[0m23:16:20.631862 [info ] [MainThread]:   connect_timeout: None
+[0m23:16:20.632026 [info ] [MainThread]:   retry_on_database_errors: False
+[0m23:16:20.632204 [info ] [MainThread]:   retry_all: False
+[0m23:16:20.632386 [info ] [MainThread]:   insecure_mode: False
+[0m23:16:20.632561 [info ] [MainThread]:   reuse_connections: True
+[0m23:16:20.632737 [info ] [MainThread]:   s3_stage_vpce_dns_name: None
+[0m23:16:20.632911 [info ] [MainThread]:   platform_detection_timeout_seconds: 0.0
+[0m23:16:20.633244 [info ] [MainThread]: Registered adapter: snowflake=1.11.6
+[0m23:16:20.678470 [debug] [MainThread]: Acquiring new snowflake connection 'debug'
+[0m23:16:20.746771 [debug] [MainThread]: Using snowflake connection "debug"
+[0m23:16:20.747114 [debug] [MainThread]: On debug: select 1 as id
+[0m23:16:20.747359 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m23:16:21.975916 [debug] [MainThread]: Snowflake adapter: Error running SQL: select 1 as id
+[0m23:16:21.976544 [debug] [MainThread]: Snowflake adapter: Rolling back transaction.
+[0m23:16:21.978009 [info ] [MainThread]:   Connection test: [[31mERROR[0m]
+
+[0m23:16:21.978521 [info ] [MainThread]: [31m2 checks failed:[0m
+[0m23:16:21.979001 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml> not found
+
+[0m23:16:21.979445 [info ] [MainThread]: dbt was unable to connect to the specified database.
+The database returned the following error:
+
+  >Database Error
+  290404 (08001): 404 Not Found: post EEB51968.snowflakecomputing.com:443/session/v1/login-request
+
+Check your database credentials and try again. For more information, visit:
+https://docs.getdbt.com/docs/configure-your-profile
+
+
+[0m23:16:21.980532 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 1.5816883, "process_in_blocks": "5512", "process_kernel_time": 0.122234, "process_mem_max_rss": "147864", "process_out_blocks": "3864", "process_user_time": 1.475829}
+[0m23:16:21.981084 [debug] [MainThread]: Command `dbt debug` failed at 23:16:21.980981 after 1.58 seconds
+[0m23:16:21.981474 [debug] [MainThread]: Connection 'debug' was left open.
+[0m23:16:21.981829 [debug] [MainThread]: On debug: No close available on handle
+[0m23:16:21.982175 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x738482dbcef0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x738483a250a0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7384829b04d0>]}
+[0m23:16:21.982556 [debug] [MainThread]: Flushing usage events
+[0m23:16:22.305463 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m23:17:20.478211 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0f24a95b0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0f28667b0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0f23346b0>]}
+
+
+============================== 23:17:20.481696 | 6c2b0620-f9c1-41a0-bdb0-13d3df996214 ==============================
+[0m23:17:20.481696 [info ] [MainThread]: Running with dbt=1.11.12
+[0m23:17:20.482095 [debug] [MainThread]: running dbt with arguments {'log_cache_events': 'False', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'invocation_command': 'dbt debug', 'no_print': 'None', 'version_check': 'True', 'send_anonymous_usage_stats': 'True', 'write_json': 'True', 'profiles_dir': '/home/eakerian/.dbt', 'warn_error': 'None', 'quiet': 'False', 'debug': 'False', 'cache_selected_only': 'False', 'indirect_selection': 'eager', 'log_format': 'default', 'use_colors': 'True', 'introspect': 'True', 'empty': 'None', 'static_parser': 'True', 'partial_parse': 'True', 'use_experimental_parser': 'False', 'printer_width': '80', 'log_path': 'logs', 'fail_fast': 'False'}
+[0m23:17:20.487348 [info ] [MainThread]: dbt version: 1.11.12
+[0m23:17:20.487648 [info ] [MainThread]: python version: 3.12.3
+[0m23:17:20.487869 [info ] [MainThread]: python path: /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/bin/python3
+[0m23:17:20.488073 [info ] [MainThread]: os info: Linux-7.0.11-76070011-generic-x86_64-with-glibc2.39
+[0m23:17:20.642673 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m23:17:20.643097 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m23:17:20.643340 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m23:17:20.686947 [info ] [MainThread]: Using profiles dir at /home/eakerian/.dbt
+[0m23:17:20.687383 [info ] [MainThread]: Using profiles.yml file at /home/eakerian/.dbt/profiles.yml
+[0m23:17:20.687615 [info ] [MainThread]: Using dbt_project.yml file at /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml
+[0m23:17:20.687944 [info ] [MainThread]: adapter type: snowflake
+[0m23:17:20.688173 [info ] [MainThread]: adapter version: 1.11.6
+[0m23:17:20.688386 [info ] [MainThread]: Configuration:
+[0m23:17:20.688579 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m23:17:20.688760 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m23:17:20.688935 [info ] [MainThread]: Required dependencies:
+[0m23:17:20.689137 [debug] [MainThread]: Executing "git --help"
+[0m23:17:20.690995 [debug] [MainThread]: STDOUT: "b"usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           [--config-env=<name>=<envvar>] <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone     Clone a repository into a new directory\n   init      Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add       Add file contents to the index\n   mv        Move or rename a file, a directory, or a symlink\n   restore   Restore working tree files\n   rm        Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect    Use binary search to find the commit that introduced a bug\n   diff      Show changes between commits, commit and working tree, etc\n   grep      Print lines matching a pattern\n   log       Show commit logs\n   show      Show various types of objects\n   status    Show the working tree status\n\ngrow, mark and tweak your common history\n   branch    List, create, or delete branches\n   commit    Record changes to the repository\n   merge     Join two or more development histories together\n   rebase    Reapply commits on top of another base tip\n   reset     Reset current HEAD to the specified state\n   switch    Switch branches\n   tag       Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch     Download objects and refs from another repository\n   pull      Fetch from and integrate with another repository or a local branch\n   push      Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m23:17:20.691530 [debug] [MainThread]: STDERR: "b''"
+[0m23:17:20.691780 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m23:17:20.691995 [info ] [MainThread]: Connection:
+[0m23:17:20.692218 [info ] [MainThread]:   account: FOFOXOE-EEB51968
+[0m23:17:20.692418 [info ] [MainThread]:   user: cashalot1
+[0m23:17:20.692601 [info ] [MainThread]:   database: COLORADO_CRIME_DB_DEV
+[0m23:17:20.692782 [info ] [MainThread]:   warehouse: TRANSFORM_WH
+[0m23:17:20.692958 [info ] [MainThread]:   role: ACCOUNTADMIN
+[0m23:17:20.693134 [info ] [MainThread]:   schema: RAW_DEV
+[0m23:17:20.693317 [info ] [MainThread]:   authenticator: None
+[0m23:17:20.693521 [info ] [MainThread]:   oauth_client_id: None
+[0m23:17:20.693706 [info ] [MainThread]:   query_tag: None
+[0m23:17:20.693897 [info ] [MainThread]:   client_session_keep_alive: False
+[0m23:17:20.694090 [info ] [MainThread]:   host: None
+[0m23:17:20.694283 [info ] [MainThread]:   port: None
+[0m23:17:20.694477 [info ] [MainThread]:   proxy_host: None
+[0m23:17:20.694660 [info ] [MainThread]:   proxy_port: None
+[0m23:17:20.694848 [info ] [MainThread]:   protocol: None
+[0m23:17:20.695054 [info ] [MainThread]:   connect_retries: 1
+[0m23:17:20.695252 [info ] [MainThread]:   connect_timeout: None
+[0m23:17:20.695461 [info ] [MainThread]:   retry_on_database_errors: False
+[0m23:17:20.695645 [info ] [MainThread]:   retry_all: False
+[0m23:17:20.695815 [info ] [MainThread]:   insecure_mode: False
+[0m23:17:20.695982 [info ] [MainThread]:   reuse_connections: True
+[0m23:17:20.696173 [info ] [MainThread]:   s3_stage_vpce_dns_name: None
+[0m23:17:20.696370 [info ] [MainThread]:   platform_detection_timeout_seconds: 0.0
+[0m23:17:20.696684 [info ] [MainThread]: Registered adapter: snowflake=1.11.6
+[0m23:17:20.741175 [debug] [MainThread]: Acquiring new snowflake connection 'debug'
+[0m23:17:20.809388 [debug] [MainThread]: Using snowflake connection "debug"
+[0m23:17:20.809763 [debug] [MainThread]: On debug: select 1 as id
+[0m23:17:20.809996 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m23:17:21.776806 [debug] [MainThread]: SQL status: SUCCESS 1 in 0.967 seconds
+[0m23:17:21.778340 [info ] [MainThread]:   Connection test: [[32mOK connection ok[0m]
+
+[0m23:17:21.778899 [info ] [MainThread]: [31m1 check failed:[0m
+[0m23:17:21.779300 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml> not found
+
+[0m23:17:21.780405 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 1.342719, "process_in_blocks": "0", "process_kernel_time": 0.097967, "process_mem_max_rss": "146108", "process_out_blocks": "3872", "process_user_time": 1.337559}
+[0m23:17:21.781016 [debug] [MainThread]: Command `dbt debug` failed at 23:17:21.780897 after 1.34 seconds
+[0m23:17:21.781293 [debug] [MainThread]: Connection 'debug' was left open.
+[0m23:17:21.781572 [debug] [MainThread]: On debug: Close
+[0m23:17:22.026542 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0f34cadb0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0ef189ee0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x74b0eed84f80>]}
+[0m23:17:22.027991 [debug] [MainThread]: Flushing usage events
+[0m23:17:22.250051 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m11:27:07.794710 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc6b193950>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc6a101100>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc6a5df350>]}
+
+
+============================== 11:27:07.799800 | 72e85fae-a8c9-4da7-86aa-0cc78a6f3918 ==============================
+[0m11:27:07.799800 [info ] [MainThread]: Running with dbt=1.11.12
+[0m11:27:07.800217 [debug] [MainThread]: running dbt with arguments {'target_path': 'None', 'introspect': 'True', 'write_json': 'True', 'static_parser': 'True', 'log_format': 'default', 'use_colors': 'True', 'profiles_dir': '/home/eakerian/.dbt', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'quiet': 'False', 'version_check': 'True', 'debug': 'False', 'empty': 'None', 'partial_parse': 'True', 'log_cache_events': 'False', 'printer_width': '80', 'cache_selected_only': 'False', 'fail_fast': 'False', 'use_experimental_parser': 'False', 'no_print': 'None', 'indirect_selection': 'eager', 'warn_error': 'None', 'invocation_command': 'dbt debug', 'send_anonymous_usage_stats': 'True', 'log_path': 'logs'}
+[0m11:27:07.809195 [info ] [MainThread]: dbt version: 1.11.12
+[0m11:27:07.809558 [info ] [MainThread]: python version: 3.12.3
+[0m11:27:07.809791 [info ] [MainThread]: python path: /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt-env/bin/python3
+[0m11:27:07.810008 [info ] [MainThread]: os info: Linux-7.0.11-76070011-generic-x86_64-with-glibc2.39
+[0m11:27:08.066797 [debug] [MainThread]: Snowflake adapter: Setting snowflake.connector to ERROR (file logging only)
+[0m11:27:08.067247 [debug] [MainThread]: Snowflake adapter: Setting botocore to ERROR (file logging only)
+[0m11:27:08.067540 [debug] [MainThread]: Snowflake adapter: Setting boto3 to ERROR (file logging only)
+[0m11:27:08.113363 [info ] [MainThread]: Using profiles dir at /home/eakerian/.dbt
+[0m11:27:08.113802 [info ] [MainThread]: Using profiles.yml file at /home/eakerian/.dbt/profiles.yml
+[0m11:27:08.114029 [info ] [MainThread]: Using dbt_project.yml file at /home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml
+[0m11:27:08.114496 [info ] [MainThread]: adapter type: snowflake
+[0m11:27:08.114755 [info ] [MainThread]: adapter version: 1.11.6
+[0m11:27:08.114963 [info ] [MainThread]: Configuration:
+[0m11:27:08.115142 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m11:27:08.115313 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m11:27:08.115500 [info ] [MainThread]: Required dependencies:
+[0m11:27:08.115701 [debug] [MainThread]: Executing "git --help"
+[0m11:27:08.117513 [debug] [MainThread]: STDOUT: "b"usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           [--config-env=<name>=<envvar>] <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone     Clone a repository into a new directory\n   init      Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add       Add file contents to the index\n   mv        Move or rename a file, a directory, or a symlink\n   restore   Restore working tree files\n   rm        Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect    Use binary search to find the commit that introduced a bug\n   diff      Show changes between commits, commit and working tree, etc\n   grep      Print lines matching a pattern\n   log       Show commit logs\n   show      Show various types of objects\n   status    Show the working tree status\n\ngrow, mark and tweak your common history\n   branch    List, create, or delete branches\n   commit    Record changes to the repository\n   merge     Join two or more development histories together\n   rebase    Reapply commits on top of another base tip\n   reset     Reset current HEAD to the specified state\n   switch    Switch branches\n   tag       Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch     Download objects and refs from another repository\n   pull      Fetch from and integrate with another repository or a local branch\n   push      Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m11:27:08.117848 [debug] [MainThread]: STDERR: "b''"
+[0m11:27:08.118065 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m11:27:08.118297 [info ] [MainThread]: Connection:
+[0m11:27:08.118551 [info ] [MainThread]:   account: FOFOXOE-EEB51968
+[0m11:27:08.118775 [info ] [MainThread]:   user: cashalot1
+[0m11:27:08.118992 [info ] [MainThread]:   database: COLORADO_CRIME_DB_DEV
+[0m11:27:08.119194 [info ] [MainThread]:   warehouse: TRANSFORM_WH
+[0m11:27:08.119394 [info ] [MainThread]:   role: ACCOUNTADMIN
+[0m11:27:08.119596 [info ] [MainThread]:   schema: RAW_DEV
+[0m11:27:08.119796 [info ] [MainThread]:   authenticator: None
+[0m11:27:08.119988 [info ] [MainThread]:   oauth_client_id: None
+[0m11:27:08.120183 [info ] [MainThread]:   query_tag: None
+[0m11:27:08.120375 [info ] [MainThread]:   client_session_keep_alive: False
+[0m11:27:08.120569 [info ] [MainThread]:   host: None
+[0m11:27:08.120757 [info ] [MainThread]:   port: None
+[0m11:27:08.120942 [info ] [MainThread]:   proxy_host: None
+[0m11:27:08.121127 [info ] [MainThread]:   proxy_port: None
+[0m11:27:08.121307 [info ] [MainThread]:   protocol: None
+[0m11:27:08.121499 [info ] [MainThread]:   connect_retries: 1
+[0m11:27:08.121674 [info ] [MainThread]:   connect_timeout: None
+[0m11:27:08.121855 [info ] [MainThread]:   retry_on_database_errors: False
+[0m11:27:08.122037 [info ] [MainThread]:   retry_all: False
+[0m11:27:08.122225 [info ] [MainThread]:   insecure_mode: False
+[0m11:27:08.122405 [info ] [MainThread]:   reuse_connections: True
+[0m11:27:08.122593 [info ] [MainThread]:   s3_stage_vpce_dns_name: None
+[0m11:27:08.122775 [info ] [MainThread]:   platform_detection_timeout_seconds: 0.0
+[0m11:27:08.123084 [info ] [MainThread]: Registered adapter: snowflake=1.11.6
+[0m11:27:08.180841 [debug] [MainThread]: Acquiring new snowflake connection 'debug'
+[0m11:27:08.257180 [debug] [MainThread]: Using snowflake connection "debug"
+[0m11:27:08.257537 [debug] [MainThread]: On debug: select 1 as id
+[0m11:27:08.257756 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m11:27:09.592079 [debug] [MainThread]: SQL status: SUCCESS 1 in 1.334 seconds
+[0m11:27:09.592960 [info ] [MainThread]:   Connection test: [[32mOK connection ok[0m]
+
+[0m11:27:09.593278 [info ] [MainThread]: [31m1 check failed:[0m
+[0m11:27:09.593515 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </home/eakerian/Documents/Zach/colorado-subsidy-pipeline/dbt_project.yml> not found
+
+[0m11:27:09.600291 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 1.8477899, "process_in_blocks": "91296", "process_kernel_time": 0.17647, "process_mem_max_rss": "142324", "process_out_blocks": "40", "process_user_time": 1.589243}
+[0m11:27:09.600909 [debug] [MainThread]: Command `dbt debug` failed at 11:27:09.600806 after 1.85 seconds
+[0m11:27:09.601251 [debug] [MainThread]: Connection 'debug' was left open.
+[0m11:27:09.601688 [debug] [MainThread]: On debug: Close
+[0m11:27:09.840075 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc6b0fc5c0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc69201250>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7bcc67dfe930>]}
+[0m11:27:09.840606 [debug] [MainThread]: Flushing usage events
+[0m11:27:10.123389 [debug] [MainThread]: An error was encountered while trying to flush usage events
+{"data":{"log_version":3,"version":"=2.0.0-preview.202"},"info":{"category":"","code":"A001","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"info","msg":"Running with dbt-fusion=2.0.0-preview.202","name":"MainReportVersion","pid":514098,"thread":"tokio-rt-worker","ts":"2026-08-03T01:35:49.665430Z"}}
+{"data":{"args":{"debug":"false","invocation_command":"/home/eakerian/.local/bin/dbt license info --json --log-format json","log_format":"json","quiet":"false","write_json":"true"}},"info":{"category":"","code":"A002","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"debug","msg":"running dbt-fusion with arguments {\"command\":\"license\",\"vars\":\"{}\",\"limit\":\"10\",\"debug\":false,\"log_format\":\"json\",\"quiet\":false,\"write_json\":true,\"write_catalog\":false,\"manage_state\":false}","name":"MainReportArgs","pid":514098,"thread":"tokio-rt-worker","ts":"2026-08-03T01:35:49.665445Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":514098,"thread":"main","ts":"2026-08-03T01:35:49.673441Z"}}
+{"data":{},"info":{"category":"","code":"1068","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"warn","msg":"[warning] [LicenseError (dbt1068)]: Error loading license from remote server el968.us1.dbt.com, skipping: Email not verified","name":"LicenseError","pid":514098,"thread":"tokio-rt-worker","ts":"2026-08-03T01:35:49.863935Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":514098,"thread":"main","ts":"2026-08-03T01:35:49.868437Z"}}
+{"data":{"columns":[],"is_inline":true,"node_name":"license_info","output_format":"json","preview":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","unique_id":"license.info"},"info":{"category":"","code":"Q041","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"info","msg":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","name":"ShowNode","pid":514098,"thread":"tokio-rt-worker","ts":"2026-08-03T01:35:50.154296Z"}}
+{"data":{"completed_at":"2026-08-03T01:35:50.204950Z","elapsed":0.5396193861961365,"success":true},"info":{"category":"","code":"Q039","extra":{},"invocation_id":"019fc543-4b9f-7332-8c07-dac3b79119d6","level":"info","msg":"\n==================== Execution Summary =====================\nFinished 'license' with 1 warning [539ms]","name":"CommandCompleted","pid":514098,"thread":"tokio-rt-worker","ts":"2026-08-03T01:35:50.205028Z"}}
+{"data":{"log_version":3,"version":"=2.0.0-preview.203"},"info":{"category":"","code":"A001","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"info","msg":"Running with dbt-fusion=2.0.0-preview.203","name":"MainReportVersion","pid":540453,"thread":"tokio-rt-worker","ts":"2026-08-03T01:59:09.598859Z"}}
+{"data":{"args":{"debug":"false","invocation_command":"/home/eakerian/.local/bin/dbt license info --json --log-format json","log_format":"json","quiet":"false","write_json":"true"}},"info":{"category":"","code":"A002","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"debug","msg":"running dbt-fusion with arguments {\"command\":\"license\",\"vars\":\"{}\",\"limit\":\"10\",\"debug\":false,\"log_format\":\"json\",\"quiet\":false,\"write_json\":true,\"write_catalog\":false,\"manage_state\":false}","name":"MainReportArgs","pid":540453,"thread":"tokio-rt-worker","ts":"2026-08-03T01:59:09.598868Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":540453,"thread":"main","ts":"2026-08-03T01:59:09.607110Z"}}
+{"data":{},"info":{"category":"","code":"1068","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"warn","msg":"[warning] [LicenseError (dbt1068)]: Error loading license from remote server el968.us1.dbt.com, skipping: Email not verified","name":"LicenseError","pid":540453,"thread":"tokio-rt-worker","ts":"2026-08-03T01:59:09.805604Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":540453,"thread":"main","ts":"2026-08-03T01:59:09.815051Z"}}
+{"data":{"columns":[],"is_inline":true,"node_name":"license_info","output_format":"json","preview":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","unique_id":"license.info"},"info":{"category":"","code":"Q041","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"info","msg":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","name":"ShowNode","pid":540453,"thread":"tokio-rt-worker","ts":"2026-08-03T01:59:10.015344Z"}}
+{"data":{"completed_at":"2026-08-03T01:59:10.081798Z","elapsed":0.48299166560173035,"success":true},"info":{"category":"","code":"Q039","extra":{},"invocation_id":"019fc558-a81d-71e0-8853-20f061ad2c2d","level":"info","msg":"\n==================== Execution Summary =====================\nFinished 'license' with 1 warning [482ms]","name":"CommandCompleted","pid":540453,"thread":"tokio-rt-worker","ts":"2026-08-03T01:59:10.081857Z"}}
+{"data":{"log_version":3,"version":"=2.0.0-preview.203"},"info":{"category":"","code":"A001","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"info","msg":"Running with dbt-fusion=2.0.0-preview.203","name":"MainReportVersion","pid":569565,"thread":"tokio-rt-worker","ts":"2026-08-03T02:27:54.416024Z"}}
+{"data":{"args":{"debug":"false","invocation_command":"/home/eakerian/.local/bin/dbt license info --json --log-format json","log_format":"json","quiet":"false","write_json":"true"}},"info":{"category":"","code":"A002","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"debug","msg":"running dbt-fusion with arguments {\"command\":\"license\",\"vars\":\"{}\",\"limit\":\"10\",\"debug\":false,\"log_format\":\"json\",\"quiet\":false,\"write_json\":true,\"write_catalog\":false,\"manage_state\":false}","name":"MainReportArgs","pid":569565,"thread":"tokio-rt-worker","ts":"2026-08-03T02:27:54.416040Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":569565,"thread":"main","ts":"2026-08-03T02:27:54.424948Z"}}
+{"data":{},"info":{"category":"","code":"1068","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"warn","msg":"[warning] [LicenseError (dbt1068)]: Error loading license from remote server el968.us1.dbt.com, skipping: Email not verified","name":"LicenseError","pid":569565,"thread":"tokio-rt-worker","ts":"2026-08-03T02:27:54.728167Z"}}
+{"data":{},"info":{"category":"","code":"","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"debug","msg":"Requesting license from https://el968.us1.dbt.com/api/private/accounts/70506183153546/feature-licenses/ with 1 key IDs: [\"fusion-prod-2025-11-20\"]","name":"Generic","pid":569565,"thread":"main","ts":"2026-08-03T02:27:54.738803Z"}}
+{"data":{"columns":[],"is_inline":true,"node_name":"license_info","output_format":"json","preview":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","unique_id":"license.info"},"info":{"category":"","code":"Q041","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"info","msg":"{\n  \"status\": \"not_found\",\n  \"licensing_enabled\": true\n}","name":"ShowNode","pid":569565,"thread":"tokio-rt-worker","ts":"2026-08-03T02:27:54.932347Z"}}
+{"data":{"completed_at":"2026-08-03T02:27:55.035862Z","elapsed":0.6199116110801697,"success":true},"info":{"category":"","code":"Q039","extra":{},"invocation_id":"019fc572-f9ae-7dd0-82f2-95bd74bea39e","level":"info","msg":"\n==================== Execution Summary =====================\nFinished 'license' with 1 warning [619ms]","name":"CommandCompleted","pid":569565,"thread":"tokio-rt-worker","ts":"2026-08-03T02:27:55.035928Z"}}

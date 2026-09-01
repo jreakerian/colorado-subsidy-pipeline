@@ -2,3 +2,5 @@
 astronomer-cosmos
 apache-airflow-providers-snowflake
 pyarrow<24,>=14.0.1
+boto3
+pandas

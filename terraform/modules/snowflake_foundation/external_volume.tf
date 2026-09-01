@@ -26,7 +26,7 @@ resource "snowflake_external_volume" "iceberg_volume" {
 
   comment = "Snowflake-managed Iceberg external volume backed by the general-purpose project bucket (iceberg/ prefix)"
 
-  depends_on = [snowflake_storage_integration.s3_integration]
+  depends_on = [snowflake_storage_integration_aws.s3_integration]
 
   # S3_ICEBERG_VOLUME is a shared account-level resource. Snowflake does not
   # allow removing an active storage location, so we prevent Terraform from

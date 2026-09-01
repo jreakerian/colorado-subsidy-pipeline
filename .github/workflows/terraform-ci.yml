@@ -91,7 +91,6 @@ jobs:
             -var="private_key_passphrase=${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}" \
             -var="airflow_service_password=${{ secrets.AIRFLOW_SERVICE_PASSWORD }}" \
             -var="dbt_service_password=${{ secrets.DBT_SERVICE_PASSWORD }}" \
-            -var="geoapify_api_key=${{ secrets.GEOAPIFY_API_KEY }}" \
             -input=false \
             -no-color \
             -out=tfplan

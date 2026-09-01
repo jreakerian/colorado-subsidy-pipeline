@@ -28,6 +28,8 @@ models:
       county to reduce crime by 5% within the next fiscal year, based on
       historical crime count baseline.
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'reporting', 'law_enforcement', 'kpi']
     primary_entity: county_agency_baseline
     agg_time_dimension: first_incident_date
@@ -35,6 +37,7 @@ models:
       enabled: true
     columns:
       - name: county_name
+        data_type: varchar
         tests: [not_null]
         entity:
           type: foreign
@@ -42,6 +45,7 @@ models:
         dimension:
           type: categorical
       - name: agency_name
+        data_type: varchar
         tests: [not_null]
         entity:
           type: foreign
@@ -49,15 +53,19 @@ models:
         dimension:
           type: categorical
       - name: total_crimes
+        data_type: integer
         tests: [not_null]
       - name: target_crimes_5pct_reduction
+        data_type: integer
         tests: [not_null]
       - name: first_incident_date
+        data_type: date
         tests: [not_null]
         granularity: day
         dimension:
           type: time
       - name: last_incident_date
+        data_type: date
         tests: [not_null]
     metrics:
       - name: agency_total_crimes
@@ -107,21 +115,37 @@ models:
       businesses, streamlining the application process. Powered by
       fct_business_subsidy_tiers.
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'reporting', 'business_portal', 'kpi', 'base_program']
     semantic_model:
       enabled: false
     columns:
       - name: entity_id
+        data_type: integer
         tests: [not_null, unique]
       - name: entity_name
+        data_type: varchar
         tests: [not_null]
       - name: principal_city
+        data_type: varchar
       - name: principal_county
+        data_type: varchar
         tests: [not_null]
       - name: principal_zip
+        data_type: varchar
       - name: entity_type
+        data_type: varchar
       - name: formation_date
+        data_type: date
+      - name: crime_tier
+        data_type: integer
+      - name: income_tier
+        data_type: integer
+      - name: population_tier
+        data_type: integer
       - name: composite_tier
+        data_type: integer
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -129,9 +153,13 @@ models:
                 min_value: 1
                 max_value: 4
       - name: subsidy_tier_label
+        data_type: varchar
       - name: qualifies_for_subsidy
+        data_type: boolean
         tests: [not_null]
       - name: notification_eligible
+        data_type: boolean
         tests: [not_null]
       - name: subsidy_message
+        data_type: varchar
         tests: [not_null]

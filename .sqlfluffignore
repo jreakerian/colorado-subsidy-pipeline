@@ -1,0 +1,4 @@
+include/dbt/dbt_project/dbt_packages/
+include/dbt/dbt_project/target/
+include/dbt/dbt_project/dbt_modules/
+include/dbt/dbt_project/macros/
