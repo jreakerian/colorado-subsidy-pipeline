@@ -6,13 +6,24 @@ on:
       - main
     paths:
       - 'include/dbt/dbt_project/**'
+  workflow_dispatch:
 
 permissions:
+  id-token: write   # required to mint the GitHub OIDC token
   contents: write
 
 jobs:
   deploy-docs:
     runs-on: ubuntu-latest
+    environment: dev
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT  }}
+      SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+      CI_DATABASE: COLORADO_CRIME_DB_DEV
+      CI_SCHEMA: PUBLIC
+      CI_WAREHOUSE: TRANSFORMING_WH_DEV
+      CI_ROLE: CICD_ROLE
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,13 +35,58 @@ jobs:
       - name: Install dbt
         run: pip install dbt-snowflake
 
+      - name: Fetch GitHub OIDC Token
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('snowflakecomputing.com');
+            core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
+            core.setSecret(token);
+
+      - name: Generate ephemeral profiles.yml
+        run: |
+          mkdir -p $HOME/.dbt
+          echo "RUNNER_HOME=$HOME" >> $GITHUB_ENV
+          python3 -c "
+          import os, textwrap
+          profile = textwrap.dedent('''
+          dbt_project:
+            target: dev
+            outputs:
+              dev:
+                type: snowflake
+                account: {account}
+                user: {user}
+                authenticator: WORKLOAD_IDENTITY
+                workload_identity_provider: OIDC
+                token: {token}
+                database: {database}
+                schema: {schema}
+                warehouse: {warehouse}
+                role: {role}
+                threads: 10
+                client_session_keep_alive: false
+          ''').strip().format(
+              account=os.environ['SNOWFLAKE_ACCOUNT'],
+              user=os.environ['SNOWFLAKE_USER'],
+              token=os.environ['SNOWFLAKE_OIDC_TOKEN'],
+              database=os.environ['CI_DATABASE'],
+              schema=os.environ['CI_SCHEMA'],
+              warehouse=os.environ['CI_WAREHOUSE'],
+              role=os.environ['CI_ROLE'],
+          )
+          path = os.path.join(os.environ['HOME'], '.dbt', 'profiles.yml')
+          open(path, 'w').write(profile)
+          print('Wrote ephemeral profiles.yml to', path)
+          "
+
       - name: dbt dependencies
         working-directory: ./include/dbt/dbt_project
         run: dbt deps
 
       - name: Generate Docs
         working-directory: ./include/dbt/dbt_project
-        run: dbt docs generate
+        run: dbt docs generate --profiles-dir $HOME/.dbt
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
