@@ -33,37 +33,48 @@ models:
   - name: fct_crimes
     description: "Core crime incident fact table. Granularity: 1 row per incident (1997-2024). All crime KPIs aggregate from this table via dimension joins. Crime incident semantic model. Primary entity: crime_incident. Joins to geo, date, offense, agency via foreign keys."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'fact']
     columns:
       - name: date_key
+        data_type: varchar
         tests: [not_null]
         description: "FK to dim_date"
         entity:
           type: foreign
           name: date
       - name: geo_key
+        data_type: integer
         tests: [not_null]
         description: "FK to dim_geography"
         entity:
           type: foreign
           name: geo
       - name: offense_key
+        data_type: integer
         tests: [not_null]
         description: "FK to dim_offense"
         entity:
           type: foreign
           name: offense
       - name: agency_key
+        data_type: integer
         description: "FK to dim_agency (nullable for unmatched agencies)"
         entity:
           type: foreign
           name: agency
       - name: incident_date
+        data_type: date
         tests: [not_null]
         granularity: day
         dimension:
           type: time
+      - name: incident_hour
+        data_type: integer
+        description: "Hour of the incident (0-23)"
       - name: time_of_day
+        data_type: varchar
         tests:
           - not_null
           - accepted_values:
@@ -71,7 +82,14 @@ models:
                 values: ['day', 'night']
         dimension:
           type: categorical
+      - name: age_num
+        data_type: integer
+        description: "Recorded age of individual involved"
+      - name: source_period
+        data_type: varchar
+        description: "Source dataset time period designation"
       - name: crime_count
+        data_type: integer
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -100,33 +118,48 @@ models:
   - name: fct_income_population
     description: "Annual county income and population snapshot fact. Granularity: 1 row per county per year (1997-2024). County income and population semantic model. Granularity: 1 row per county per year."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'fact']
     columns:
       - name: geo_key
+        data_type: integer
         tests: [not_null]
         description: "FK to dim_geography (county-level rows only)"
         entity:
           type: foreign
           name: geo
       - name: year
+        data_type: integer
         tests: [not_null]
       - name: year_date
+        data_type: date
         description: "Synthetic Jan-1-of-year date; the real time dimension backing agg_time_dimension for this model."
         granularity: year
         dimension:
           type: time
       - name: total_population
+        data_type: integer
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 1
+      - name: male_population
+        data_type: integer
+      - name: female_population
+        data_type: integer
       - name: median_household_income
+        data_type: float
       - name: per_capita_income
+        data_type: float
       - name: total_personal_income
+        data_type: float
       - name: population_yoy_change
+        data_type: integer
         description: "Year-over-year absolute change in population"
       - name: population_growth_pct
+        data_type: float
         description: "Year-over-year % population growth (used for >10% growth KPI)"
 
     primary_entity: county_year
@@ -177,25 +210,49 @@ models:
   - name: fct_business_subsidy_tiers
     description: "B.A.S.E. program core output. One row per eligible business with composite subsidy tier. This is the central deliverable of the B.A.S.E. program."
     config:
+      contract:
+        enforced: true
       tags: ['marts', 'fact', 'base_program']
     agg_time_dimension: formation_date
     semantic_model:
       enabled: true
     columns:
       - name: business_key
+        data_type: varchar
         tests: [not_null, unique]
         description: "FK to dim_business"
         entity:
           type: primary
           name: business
       - name: entity_id
+        data_type: integer
         tests: [not_null, unique]
+      - name: entity_name
+        data_type: varchar
+      - name: principal_city
+        data_type: varchar
+      - name: principal_county
+        data_type: varchar
+      - name: principal_zip
+        data_type: varchar
+      - name: entity_type
+        data_type: varchar
       - name: formation_date
+        data_type: date
         description: "Date the business was registered with CDOS. Used as the semantic model time spine."
         granularity: day
         dimension:
           type: time
+      - name: geo_key
+        data_type: integer
+      - name: crime_tier
+        data_type: integer
+      - name: income_tier
+        data_type: integer
+      - name: population_tier
+        data_type: integer
       - name: composite_tier
+        data_type: integer
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -203,14 +260,17 @@ models:
                 min_value: 1
                 max_value: 4
       - name: qualifies_for_subsidy
+        data_type: boolean
         tests: [not_null]
         dimension:
           type: categorical
       - name: subsidy_tier_label
+        data_type: varchar
         tests: [not_null]
         dimension:
           type: categorical
       - name: notification_eligible
+        data_type: boolean
         tests: [not_null]
         dimension:
           type: categorical
