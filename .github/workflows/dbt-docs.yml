@@ -15,13 +15,13 @@ permissions:
 jobs:
   deploy-docs:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: prod
     env:
       SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT  }}
       SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
-      CI_DATABASE: COLORADO_CRIME_DB_DEV
+      CI_DATABASE: COLORADO_CRIME_DB_PROD
       CI_SCHEMA: PUBLIC
-      CI_WAREHOUSE: TRANSFORMING_WH_DEV
+      CI_WAREHOUSE: TRANSFORMING_WH_PROD
       CI_ROLE: CICD_ROLE
 
     steps:
