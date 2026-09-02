@@ -36,8 +36,8 @@ jobs:
       - name: Check Source Freshness
         working-directory: ./include/dbt/dbt_project
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          CICD_SNOWFLAKE_USER: DBT_CD_SVC
           SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
           DBT_TARGET: prod
         run: dbt source freshness
@@ -45,8 +45,8 @@ jobs:
       - name: dbt Full Production Build
         working-directory: ./include/dbt/dbt_project
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          CICD_SNOWFLAKE_USER: DBT_CD_SVC
           SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
           DBT_TARGET: prod
         run: dbt build --target prod

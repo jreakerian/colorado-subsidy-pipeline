@@ -1,16 +1,9 @@
 name: Terraform CI
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-    paths:
-      - "terraform/**"
   pull_request:
     branches:
       - main
-      - dev
     paths:
       - "terraform/**"
 
@@ -71,8 +64,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: terraform init -input=false
         env:
-          TF_VAR_snowflake_organization_name: ${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}
-          TF_VAR_snowflake_account_name:      ${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}
+          TF_VAR_snowflake_account:      ${{ vars.SNOWFLAKE_ACCOUNT }}
 
       - name: Terraform Validate
         working-directory: ${{ env.WORKING_DIR }}
@@ -83,9 +75,8 @@ jobs:
         run: |
           terraform plan \
             -var-file="${{ env.TF_VARS_FILE }}" \
-            -var="snowflake_organization_name=${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}" \
-            -var="snowflake_account_name=${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}" \
-            -var="snowflake_user=${{ secrets.SNOWFLAKE_USER }}" \
+            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
+            -var="snowflake_user=${{ vars.TF_SNOWFLAKE_USER }}" \
             -var="snowflake_role=ACCOUNTADMIN" \
             -var="snowflake_private_key_path=$HOME/.snowflake/rsa_key.p8" \
             -var="private_key_passphrase=${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}" \
