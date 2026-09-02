@@ -64,7 +64,7 @@ variable "snowflake_account" {
 variable "snowflake_user" {
   description = "Snowflake admin username for the Terraform service account."
   type        = string
-  default     = "TF_ADMIN"
+  default     = "terraform_svc_user"
 }
 
 variable "snowflake_role" {

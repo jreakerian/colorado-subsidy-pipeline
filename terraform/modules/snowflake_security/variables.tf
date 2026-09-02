@@ -48,17 +48,17 @@ variable "db_name" {
 
 variable "raw_schema_name" {
   type        = string
-  description = "RAW schema name (e.g. RAW_DEV or RAW_PROD)"
+  description = "RAW schema name"
 }
 
 variable "silver_schema_name" {
   type        = string
-  description = "SILVER schema name (e.g. SILVER_DEV or SILVER_PROD)"
+  description = "SILVER schema name "
 }
 
 variable "gold_schema_name" {
   type        = string
-  description = "GOLD schema name (e.g. GOLD_DEV or GOLD_PROD)"
+  description = "GOLD"
 }
 
 variable "csv_file_format_name" {

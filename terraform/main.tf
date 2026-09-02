@@ -1,13 +1,13 @@
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.10.0"
 
-  # backend "s3" {
-  #   bucket         = "colorado-subsidy-terraform-state-backend"
-  #   key            = "state/terraform.tfstate"
-  #   region         = "us-east-2"
-  #   dynamodb_table = "terraform-state-lock"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket       = "colorado-subsidy-terraform-state"
+    key          = "state/terraform.tfstate"
+    region       = "us-east-1"
+    use_lockfile = true
+    encrypt      = true
+  }
 
   required_providers {
     aws = {
@@ -87,7 +87,6 @@ locals {
 
 # ── Snowflake Foundation ──────────────────────────────────────────────────────────
 # One database per environment run (driven by var.db_name and var.environment).
-# Schemas: RAW_DEV/RAW_PROD, SILVER_DEV/SILVER_PROD, GOLD_DEV/GOLD_PROD
 module "snowflake_foundation" {
   source = "./modules/snowflake_foundation"
 
