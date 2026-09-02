@@ -113,6 +113,54 @@ resource "snowflake_grant_account_role" "grant_cicd_to_dbt_cd" {
   user_name = snowflake_service_user.dbt_cd_svc.name
 }
 
+# Terraform CI service account — GitHub Actions OIDC, pull_request events
+# Read-only planning identity. Never used for apply.
+resource "snowflake_service_user" "tf_ci_svc" {
+  name              = "TF_CI_SVC"
+  comment           = "Terraform CI planner — WIF auth via GitHub Actions OIDC on pull_request events. Read-only; never used for apply."
+  default_warehouse = var.transforming_warehouse_name
+  default_role      = snowflake_account_role.cicd_role.name
+
+  default_workload_identity {
+    oidc {
+      issuer  = "https://token.actions.githubusercontent.com"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:pull_request"
+    }
+  }
+}
+
+# Grant CICD_ROLE to TF_CI_SVC
+
+resource "snowflake_grant_account_role" "grant_cicd_to_tf_ci" {
+  role_name = snowflake_account_role.cicd_role.name
+  user_name = snowflake_service_user.tf_ci_svc.name
+}
+
+# Terraform CD service account — GitHub Actions OIDC, push to main events
+# Has ACCOUNTADMIN so it can create/modify/delete all Snowflake infrastructure.
+
+resource "snowflake_service_user" "tf_cd_svc" {
+  name              = "TF_CD_SVC"
+  comment           = "Terraform CD applier — WIF auth via GitHub Actions OIDC on push to main. Requires ACCOUNTADMIN to manage Snowflake infrastructure."
+  default_warehouse = var.transforming_warehouse_name
+  default_role      = snowflake_account_role.cicd_role.name
+
+  default_workload_identity {
+    oidc {
+      issuer  = "https://token.actions.githubusercontent.com"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main"
+    }
+  }
+}
+
+# Grant ACCOUNTADMIN to TF_CD_SVC — required for terraform apply to provision
+# databases, warehouses, roles, users, and all other Snowflake resources
+resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_cd" {
+  role_name = "ACCOUNTADMIN"
+  user_name = snowflake_service_user.tf_cd_svc.name
+}
+
+
 # Grant ANALYST_ROLE to BI service users
 resource "snowflake_grant_account_role" "dbt_semantic_analyst_grant" {
   role_name = snowflake_account_role.analyst_role.name
