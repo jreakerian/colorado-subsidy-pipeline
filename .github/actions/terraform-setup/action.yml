@@ -1,0 +1,51 @@
+name: "Terraform Setup"
+description: "Shared setup for terraform-ci and terraform-cd: checkout, Terraform install, AWS OIDC auth, Snowflake OIDC token, and terraform init."
+
+inputs:
+  aws-role-to-assume:
+    description: "IAM role ARN for GitHub Actions to assume via OIDC"
+    required: true
+  snowflake-account:
+    description: "Combined Snowflake account identifier (ORG-ACCOUNT format)"
+    required: true
+  aws-region:
+    description: "AWS region for the provider and state bucket"
+    default: "us-east-1"
+  terraform-version:
+    description: "Terraform version to install"
+    default: "1.10.0"
+  working-directory:
+    description: "Directory containing Terraform configuration"
+    default: "./terraform"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Fetch Snowflake OIDC Token (WIF)
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const token = await core.getIDToken('snowflakecomputing.com');
+          core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
+          core.setSecret(token);
+
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        TF_VAR_snowflake_account: ${{ inputs.snowflake-account }}
+      run: terraform init -input=false

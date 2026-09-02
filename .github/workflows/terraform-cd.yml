@@ -5,33 +5,37 @@ on:
     branches:
       - main
     paths:
-      - 'terraform/**'
+      - "terraform/**"
 
 permissions:
-  id-token: write
+  id-token: write # mint GitHub OIDC token for AWS + Snowflake WIF
   contents: read
 
 jobs:
   terraform-apply:
+    name: "Terraform Apply → Production"
     runs-on: ubuntu-latest
+
+    env:
+      WORKING_DIR: "./terraform"
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # ── Shared setup: checkout, Terraform, AWS OIDC, Snowflake WIF, init ─────
+      - uses: ./.github/actions/terraform-setup
         with:
-          role-to-assume: arn:aws:iam::123456789012:role/github-actions-role
-          aws-region: us-east-2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: terraform init
+          aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CD_ROLE_ARN }}
+          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
 
       - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve -var-file="prod.tfvars"
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          SNOWFLAKE_AUTHENTICATOR: WORKLOAD_IDENTITY
+          SNOWFLAKE_TOKEN:         ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file="prod.tfvars" \
+            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
+            -var="snowflake_user=TF_CD_SVC" \
+            -var="snowflake_role=ACCOUNTADMIN" \
+            -var="snowflake_private_key_path=/dev/null" \
+            -var="private_key_passphrase="
