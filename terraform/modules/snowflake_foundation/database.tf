@@ -3,9 +3,9 @@
 # Run with: terraform apply -var-file=dev.tfvars  OR  -var-file=prod.tfvars
 
 resource "snowflake_database" "colorado_crime_db" {
-  name                        = "${upper(var.db_name)}_${upper(var.environment)}"
-  comment                     = "Colorado Subsidy data pipeline — ${upper(var.environment)} environment"
-  
+  name    = "${upper(var.db_name)}_${upper(var.environment)}"
+  comment = "Colorado Subsidy data pipeline — ${upper(var.environment)} environment"
+
   # Best practice: 0 days retention for DEV to save storage costs, 1+ days for PROD fail-safe
   data_retention_time_in_days = lower(var.environment) == "prod" ? 1 : 0
 }

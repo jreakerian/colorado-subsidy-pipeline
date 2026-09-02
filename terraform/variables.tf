@@ -74,16 +74,9 @@ variable "snowflake_role" {
 }
 
 # ── Snowflake key-pair auth ───────────────────────────────────────────────────────
-variable "snowflake_private_key_path" {
+variable "shared_rsa_public_key" {
   type        = string
-  description = "Absolute path to the RSA private key (.p8) for Snowflake JWT auth."
-  sensitive   = true
-}
-
-variable "private_key_passphrase" {
-  type        = string
-  description = "Passphrase to decrypt the Snowflake RSA private key."
-  sensitive   = true
+  description = "Shared RSA public key for service users. Passed from .env file."
 }
 
 # ── Snowflake <-> AWS trust bootstrap ────────────────────────────────────────────
@@ -135,31 +128,5 @@ variable "existing_snowflake_external_id" {
   default     = ""
 }
 
-# ── Service account passwords ─────────────────────────────────────────────────────
-variable "airflow_service_password" {
-  description = "Password for the Airflow service user in Snowflake."
-  type        = string
-  sensitive   = true
-  default     = "dummy_password"
-}
-
-variable "dbt_service_password" {
-  description = "Password for the dbt service user in Snowflake."
-  type        = string
-  sensitive   = true
-  default     = "dummy_password"
-}
-
-variable "dbt_semantic_service_password" {
-  description = "Password for the dbt Semantic Layer service user in Snowflake."
-  type        = string
-  sensitive   = true
-  default     = "dummy_password"
-}
-
-variable "metabase_service_password" {
-  description = "Password for the Metabase service user in Snowflake."
-  type        = string
-  sensitive   = true
-  default     = "dummy_password"
-}
+# ── Service account public keys ─────────────────────────────────────────────────────
+# Using shared_rsa_public_key for all service users per capstone project simplifications.

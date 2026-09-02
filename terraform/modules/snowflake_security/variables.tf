@@ -13,28 +13,9 @@ variable "analytics_warehouse_name" {
   type        = string
 }
 
-variable "airflow_service_password" {
-  description = "Password for Airflow service user"
+variable "shared_rsa_public_key" {
+  description = "Shared RSA public key for service users"
   type        = string
-  sensitive   = true
-}
-
-variable "dbt_service_password" {
-  description = "Password for the dbt service user"
-  type        = string
-  sensitive   = true
-}
-
-variable "dbt_semantic_service_password" {
-  description = "Password for the dbt Semantic Layer service user"
-  type        = string
-  sensitive   = true
-}
-
-variable "metabase_service_password" {
-  description = "Password for the Metabase service user"
-  type        = string
-  sensitive   = true
 }
 
 # ── Database & schema inputs (passed from snowflake_foundation outputs) ───────────
