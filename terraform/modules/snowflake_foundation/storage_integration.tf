@@ -8,10 +8,10 @@
 #   terraform state rm 'module.snowflake_foundation.snowflake_storage_integration.s3_integration'
 #   terraform import 'module.snowflake_foundation.snowflake_storage_integration_aws.s3_integration' S3_INTEGRATION
 resource "snowflake_storage_integration_aws" "s3_integration" {
-  name                      = "S3_INTEGRATION"
-  storage_provider          = "S3"
-  storage_aws_role_arn      = var.role_arn
-  enabled                   = true
+  name                 = "S3_INTEGRATION"
+  storage_provider     = "S3"
+  storage_aws_role_arn = var.role_arn
+  enabled              = true
   storage_allowed_locations = [
     "s3://${var.general_purpose_bucket}/"
   ]

@@ -15,10 +15,10 @@ output "analyst_role_name" {
 
 output "airflow_service_user" {
   description = "Name of the Airflow service user"
-  value       = snowflake_legacy_service_user.airflow_service.name
+  value       = snowflake_service_user.airflow_service.name
 }
 
 output "dbt_service_user" {
   description = "Name of the dbt service user"
-  value       = snowflake_legacy_service_user.dbt_service.name
+  value       = snowflake_service_user.dbt_service.name
 }

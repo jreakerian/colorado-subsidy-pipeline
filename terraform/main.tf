@@ -42,13 +42,10 @@ locals {
 }
 
 provider "snowflake" {
-  organization_name      = local.snowflake_org_name
-  account_name           = local.snowflake_acc_name
-  user                   = var.snowflake_user
-  authenticator          = "SNOWFLAKE_JWT"
-  private_key            = file(var.snowflake_private_key_path)
-  private_key_passphrase = var.private_key_passphrase
-  role                   = var.snowflake_role
+  organization_name = local.snowflake_org_name
+  account_name      = local.snowflake_acc_name
+  user              = var.snowflake_user
+  role              = var.snowflake_role
 
   # Required to use the new type-specific file format resources and WIF (preview in v2.x)
   preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource", "snowflake_file_format_parquet_resource"]
@@ -65,12 +62,12 @@ module "aws_infra" {
   source = "./modules/aws_infra"
   count  = var.deploy_aws_infra ? 1 : 0
 
-  project_name              = var.project_name
-  environment               = var.environment
-  lakehouse_bucket_name     = var.lakehouse_bucket_name
-  aws_region                = var.aws_region
-  snowflake_iam_user_arn    = var.snowflake_iam_user_arn
-  snowflake_external_id     = var.snowflake_external_id
+  project_name                 = var.project_name
+  environment                  = var.environment
+  lakehouse_bucket_name        = var.lakehouse_bucket_name
+  aws_region                   = var.aws_region
+  snowflake_iam_user_arn       = var.snowflake_iam_user_arn
+  snowflake_external_id        = var.snowflake_external_id
   snowflake_external_id_prefix = var.snowflake_external_id_prefix
 }
 
@@ -80,9 +77,9 @@ module "aws_infra" {
 #                                  in prod.tfvars, pointing at the already-deployed
 #                                  dev (shared) AWS resources.
 locals {
-  snowflake_role_arn          = var.deploy_aws_infra ? module.aws_infra[0].snowflake_role_arn          : var.existing_snowflake_role_arn
+  snowflake_role_arn          = var.deploy_aws_infra ? module.aws_infra[0].snowflake_role_arn : var.existing_snowflake_role_arn
   general_purpose_bucket_name = var.deploy_aws_infra ? module.aws_infra[0].general_purpose_bucket_name : var.existing_general_purpose_bucket
-  snowflake_external_id_val   = var.deploy_aws_infra ? module.aws_infra[0].snowflake_external_id       : var.existing_snowflake_external_id
+  snowflake_external_id_val   = var.deploy_aws_infra ? module.aws_infra[0].snowflake_external_id : var.existing_snowflake_external_id
 }
 
 # ── Snowflake Foundation ──────────────────────────────────────────────────────────
@@ -116,17 +113,14 @@ module "snowflake_security" {
   loading_warehouse_name      = module.snowflake_compute.loading_warehouse_name
   transforming_warehouse_name = module.snowflake_compute.transforming_warehouse_name
   analytics_warehouse_name    = module.snowflake_compute.analytics_warehouse_name
-  airflow_service_password    = var.airflow_service_password
-  dbt_service_password        = var.dbt_service_password
-  dbt_semantic_service_password = var.dbt_semantic_service_password
-  metabase_service_password     = var.metabase_service_password
+  shared_rsa_public_key       = var.shared_rsa_public_key
 
   # Foundation outputs — wire DB/schema names to create the dependency graph
-  db_name                  = module.snowflake_foundation.database_name
-  raw_schema_name          = module.snowflake_foundation.raw_schema_name
-  silver_schema_name       = module.snowflake_foundation.silver_schema_name
-  gold_schema_name         = module.snowflake_foundation.gold_schema_name
-  csv_file_format_name     = module.snowflake_foundation.csv_file_format_name
-  parquet_file_format_name = module.snowflake_foundation.parquet_file_format_name
+  db_name                      = module.snowflake_foundation.database_name
+  raw_schema_name              = module.snowflake_foundation.raw_schema_name
+  silver_schema_name           = module.snowflake_foundation.silver_schema_name
+  gold_schema_name             = module.snowflake_foundation.gold_schema_name
+  csv_file_format_name         = module.snowflake_foundation.csv_file_format_name
+  parquet_file_format_name     = module.snowflake_foundation.parquet_file_format_name
   stage_dependency_placeholder = module.snowflake_foundation.raw_csv_stage_name
 }
