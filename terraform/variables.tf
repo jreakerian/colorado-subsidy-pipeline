@@ -55,22 +55,16 @@ variable "analytics_warehouse_size" {
 }
 
 # ── Snowflake provider credentials (never hardcode in main.tf) ────────────────────
-variable "snowflake_organization_name" {
-  description = "Snowflake organization name (shown in SHOW ORGANIZATIONS)."
-  type        = string
-  sensitive   = true
-}
-
-variable "snowflake_account_name" {
-  description = "Snowflake account name (the locator, e.g. EEB51968)."
+variable "snowflake_account" {
+  description = "Combined Snowflake account identifier in ORG-ACCOUNT format (e.g. FOFOXOE-EEB51968)."
   type        = string
   sensitive   = true
 }
 
 variable "snowflake_user" {
-  description = "Snowflake username for the Terraform service account."
+  description = "Snowflake admin username for the Terraform service account."
   type        = string
-  default     = "terraform_svc_user"
+  default     = "TF_ADMIN"
 }
 
 variable "snowflake_role" {

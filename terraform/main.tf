@@ -35,9 +35,15 @@ provider "aws" {
   }
 }
 
+locals {
+  # Splits "FOFOXOE-EEB51968" → organization_name = "FOFOXOE", account_name = "EEB51968"
+  snowflake_org_name = split("-", var.snowflake_account)[0]
+  snowflake_acc_name = split("-", var.snowflake_account)[1]
+}
+
 provider "snowflake" {
-  organization_name      = var.snowflake_organization_name
-  account_name           = var.snowflake_account_name
+  organization_name      = local.snowflake_org_name
+  account_name           = local.snowflake_acc_name
   user                   = var.snowflake_user
   authenticator          = "SNOWFLAKE_JWT"
   private_key            = file(var.snowflake_private_key_path)
