@@ -1,0 +1,51 @@
+name: Terraform CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+
+permissions:
+  id-token: write # mint GitHub OIDC token for AWS + Snowflake WIF
+  contents: read
+
+jobs:
+  terraform-apply:
+    name: "Terraform Apply → Production"
+    runs-on: ubuntu-latest
+
+    env:
+      WORKING_DIR: "./terraform"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Shared setup: checkout, Terraform, AWS OIDC, Snowflake WIF, init ─────
+      - uses: ./.github/actions/terraform-setup
+        with:
+          aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CD_ROLE_ARN }}
+          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          environment:        prod
+
+      - name: Show target environment
+        run: |
+          echo "🚀 Deploying to: prod"
+          echo "📁 Vars file:    prod.tfvars"
+
+      - name: Terraform Apply
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          SNOWFLAKE_AUTHENTICATOR:              WORKLOAD_IDENTITY
+          SNOWFLAKE_TOKEN:                      ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+          SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER: OIDC
+        run: |
+          terraform apply -auto-approve \
+            -var-file="prod.tfvars" \
+            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
+            -var="snowflake_user=TF_CD_SVC" \
+            -var="snowflake_role=ACCOUNTADMIN" \
+            -var="shared_rsa_public_key=${{ vars.SHARED_RSA_PUBLIC_KEY }}" \
+            -input=false \
+            -no-color

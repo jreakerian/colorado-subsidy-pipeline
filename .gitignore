@@ -30,4 +30,3 @@ venv2
 **/main.tfplan
 # Keep the lock file (documents exact provider versions)
 !**/.terraform.lock.hcl
-.github/workflows/terraform-cd.yml
