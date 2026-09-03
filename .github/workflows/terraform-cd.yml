@@ -20,6 +20,8 @@ jobs:
       WORKING_DIR: "./terraform"
 
     steps:
+      - uses: actions/checkout@v4
+
       # ── Shared setup: checkout, Terraform, AWS OIDC, Snowflake WIF, init ─────
       - uses: ./.github/actions/terraform-setup
         with:

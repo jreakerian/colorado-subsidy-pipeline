@@ -23,6 +23,8 @@ jobs:
       TF_ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
 
     steps:
+      - uses: actions/checkout@v4
+
       # ── Shared setup: checkout, Terraform, AWS OIDC, Snowflake WIF, init ─────
       - uses: ./.github/actions/terraform-setup
         with:
