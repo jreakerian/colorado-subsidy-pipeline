@@ -58,7 +58,7 @@ variable "analytics_warehouse_size" {
 variable "snowflake_account" {
   description = "Combined Snowflake account identifier in ORG-ACCOUNT format (e.g. FOFOXOE-EEB51968)."
   type        = string
-  sensitive   = true
+  default     = "FOFOXOE-EEB51968"
 }
 
 variable "snowflake_user" {
