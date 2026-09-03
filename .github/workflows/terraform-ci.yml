@@ -50,8 +50,9 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          SNOWFLAKE_AUTHENTICATOR: WORKLOAD_IDENTITY
-          SNOWFLAKE_TOKEN:         ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+          SNOWFLAKE_AUTHENTICATOR:              WORKLOAD_IDENTITY
+          SNOWFLAKE_TOKEN:                      ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+          SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER: https://token.actions.githubusercontent.com
         run: |
           set +e
           terraform plan \
