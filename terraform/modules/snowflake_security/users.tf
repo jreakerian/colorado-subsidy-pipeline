@@ -114,9 +114,16 @@ resource "snowflake_service_user" "tf_ci_svc" {
 }
 
 # Grant CICD_ROLE to TF_CI_SVC
-
 resource "snowflake_grant_account_role" "grant_cicd_to_tf_ci" {
   role_name = snowflake_account_role.cicd_role.name
+  user_name = snowflake_service_user.tf_ci_svc.name
+}
+
+# Grant ACCOUNTADMIN to TF_CI_SVC so it can read all objects during terraform plan.
+# Storage integrations, external volumes, and object parameters are ACCOUNTADMIN-owned
+# and invisible to lower roles, causing phantom destroys in the plan output.
+resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_ci" {
+  role_name = "ACCOUNTADMIN"
   user_name = snowflake_service_user.tf_ci_svc.name
 }
 
@@ -154,4 +161,80 @@ resource "snowflake_grant_account_role" "dbt_semantic_analyst_grant" {
 resource "snowflake_grant_account_role" "metabase_analyst_grant" {
   role_name = snowflake_account_role.analyst_role.name
   user_name = snowflake_service_user.metabase_service.name
+}
+
+# ── CICD_ROLE user visibility grants ──────────────────────────────────────────────
+# CICD_ROLE is the active role for TF_CI_SVC during terraform plan.
+# Without MONITOR on each user, the Snowflake provider returns a 003001 access
+# control error when reading user state, causing the plan to fail.
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_airflow" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.airflow_service.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_service" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.dbt_service.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_semantic" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.dbt_semantic_service.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_metabase" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.metabase_service.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_ci_svc" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.dbt_ci_svc.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_cd_svc" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.dbt_cd_svc.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_tf_ci_svc" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.tf_ci_svc.name
+  }
+}
+
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_tf_cd_svc" {
+  account_role_name = snowflake_account_role.cicd_role.name
+  privileges        = ["MONITOR"]
+  on_account_object {
+    object_type = "USER"
+    object_name = snowflake_service_user.tf_cd_svc.name
+  }
 }

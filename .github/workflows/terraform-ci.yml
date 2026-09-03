@@ -59,7 +59,7 @@ jobs:
             -var-file="${{ env.TF_VARS_FILE }}" \
             -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
             -var="snowflake_user=TF_CI_SVC" \
-            -var="snowflake_role=CICD_ROLE" \
+            -var="snowflake_role=ACCOUNTADMIN" \
             -var="shared_rsa_public_key=${{ vars.SHARED_RSA_PUBLIC_KEY }}" \
             -input=false \
             -no-color \
