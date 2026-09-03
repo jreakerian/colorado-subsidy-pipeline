@@ -17,6 +17,9 @@ inputs:
   working-directory:
     description: "Directory containing Terraform configuration"
     default: "./terraform"
+  environment:
+    description: "Deployment environment (dev or prod) — used to scope the remote state key"
+    default: "dev"
 
 runs:
   using: "composite"
@@ -46,4 +49,6 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         TF_VAR_snowflake_account: ${{ inputs.snowflake-account }}
-      run: terraform init -input=false
+      run: |
+        terraform init -input=false \
+          -backend-config="key=state/${{ inputs.environment }}/terraform.tfstate"
