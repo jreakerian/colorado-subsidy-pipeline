@@ -30,6 +30,7 @@ jobs:
         with:
           aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CI_ROLE_ARN }}
           snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          environment:        ${{ env.TF_ENVIRONMENT }}
 
       - name: Show target environment
         run: |
