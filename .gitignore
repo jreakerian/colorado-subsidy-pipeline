@@ -19,8 +19,9 @@ dbt_dag.py
 venv2
 
 # Terraform files
-# Ignore ALL tfvars — they contain credentials and secrets
 **/*.tfvars
+!**/dev.tfvars
+!**/prod.tfvars
 **/*.tfvars.json
 # State files
 **/*.tfstate
