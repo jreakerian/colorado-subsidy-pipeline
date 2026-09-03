@@ -114,9 +114,16 @@ resource "snowflake_service_user" "tf_ci_svc" {
 }
 
 # Grant CICD_ROLE to TF_CI_SVC
-
 resource "snowflake_grant_account_role" "grant_cicd_to_tf_ci" {
   role_name = snowflake_account_role.cicd_role.name
+  user_name = snowflake_service_user.tf_ci_svc.name
+}
+
+# Grant ACCOUNTADMIN to TF_CI_SVC so it can read all objects during terraform plan.
+# Storage integrations, external volumes, and object parameters are ACCOUNTADMIN-owned
+# and invisible to lower roles, causing phantom destroys in the plan output.
+resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_ci" {
+  role_name = "ACCOUNTADMIN"
   user_name = snowflake_service_user.tf_ci_svc.name
 }
 
