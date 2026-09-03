@@ -1,4 +1,5 @@
 # ── Environment ───────────────────────────────────────────────────────────────────
+# last-ci-test: 2026-09-03
 environment  = "dev"
 project_name = "colorado-subsidy-pipeline"
 
