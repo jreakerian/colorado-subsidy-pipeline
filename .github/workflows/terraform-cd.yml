@@ -98,19 +98,14 @@ jobs:
             terraform/.terraform.lock.hcl
           retention-days: 5
 
-  # ── 2. Approval Gate ─────────────────────────────────────────────────────────
-  # This job requires a manual approval in GitHub before apply can run.
-  # To enable it:
-  #   1. Go to Settings → Environments → New environment → name it "production"
-  #   2. Enable "Required reviewers" and add yourself
-  #   3. Optionally set a deployment branch rule to only allow from main
-  #
-  # Until the environment is created, this job runs immediately (no gate).
+  # ── 2. Approval Gate + Apply ─────────────────────────────────────────────────
+  # Pauses here for a manual approval click in GitHub before touching prod.
+  # Setup: Settings → Environments → "production" → Required reviewers → add yourself
   apply:
     name: "Terraform Apply → Production"
     runs-on: ubuntu-latest
     needs: plan
-    environment: production   # ← The approval gate lives here
+    environment: prod  # ← creates the approval gate
 
     env:
       WORKING_DIR: "./terraform"
@@ -162,38 +157,20 @@ jobs:
 
     steps:
       - name: Notify Slack
-        # ── HOW TO SET UP SLACK NOTIFICATIONS ───────────────────────────────
-        # 1. Go to https://api.slack.com/apps → Create New App → From Scratch
-        # 2. Name it "GitHub Actions" and select your Slack workspace
-        # 3. In the app settings → "Incoming Webhooks" → toggle ON
-        # 4. Click "Add New Webhook to Workspace" → pick your #deploys channel
-        # 5. Copy the webhook URL (looks like https://hooks.slack.com/services/T.../B.../...)
-        # 6. In GitHub: Settings → Secrets and variables → Actions → Secrets
-        #    Add a new secret: SLACK_WEBHOOK_URL = <your webhook URL>
-        # 7. Uncomment the lines below and delete this comment block
-        # ────────────────────────────────────────────────────────────────────
-        #
-        # uses: slackapi/slack-github-action@v2
-        # with:
-        #   webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-        #   webhook-type: incoming-webhook
-        #   payload: |
-        #     {
-        #       "text": "${{ needs.apply.result == 'success' && '✅' || '❌' }} *Terraform CD — prod*",
-        #       "blocks": [
-        #         {
-        #           "type": "section",
-        #           "text": {
-        #             "type": "mrkdwn",
-        #             "text": "${{ needs.apply.result == 'success' && '✅ *Terraform apply succeeded*' || '❌ *Terraform apply FAILED*' }}\n*Repo:* ${{ github.repository }}\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Actor:* @${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-        #           }
-        #         }
-        #       ]
-        #     }
-
-        # ── PLACEHOLDER: remove this run block once Slack is configured ──────
-        run: |
-          echo "📣 Slack notification placeholder"
-          echo "Apply result: ${{ needs.apply.result }}"
-          echo "Plan exit code: ${{ needs.plan.outputs.plan_exit_code }}"
-          echo "To enable Slack: follow the instructions in the notify step above"
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ needs.apply.result == 'success' && '✅' || '❌' }} *Terraform CD — prod*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.apply.result == 'success' && '✅ *Terraform apply succeeded*' || '❌ *Terraform apply FAILED*' }}\n*Repo:* ${{ github.repository }}\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Actor:* @${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
