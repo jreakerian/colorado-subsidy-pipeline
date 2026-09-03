@@ -30,6 +30,7 @@ jobs:
         with:
           aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CI_ROLE_ARN }}
           snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          environment:        ${{ env.TF_ENVIRONMENT }}
 
       - name: Show target environment
         run: |
@@ -49,8 +50,9 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.WORKING_DIR }}
         env:
-          SNOWFLAKE_AUTHENTICATOR: WORKLOAD_IDENTITY
-          SNOWFLAKE_TOKEN:         ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+          SNOWFLAKE_AUTHENTICATOR:              WORKLOAD_IDENTITY
+          SNOWFLAKE_TOKEN:                      ${{ env.SNOWFLAKE_OIDC_TOKEN }}
+          SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER: OIDC
         run: |
           set +e
           terraform plan \

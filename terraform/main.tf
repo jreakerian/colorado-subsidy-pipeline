@@ -3,7 +3,7 @@ terraform {
 
   backend "s3" {
     bucket       = "colorado-subsidy-terraform-state"
-    key          = "state/terraform.tfstate"
+    key          = "state/dev/terraform.tfstate" # overridden per-env via -backend-config at init
     region       = "us-east-1"
     use_lockfile = true
     encrypt      = true
