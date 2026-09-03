@@ -116,8 +116,15 @@ resource "aws_iam_role" "github_actions_terraform_cd" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            # Only trust push events to main — never from PRs or feature branches
-            "token.actions.githubusercontent.com:sub" = "repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main"
+          }
+          # StringLike covers both sub claims the CD workflow produces:
+          #   - plan job (no environment):  ref:refs/heads/main
+          #   - apply job (environment:prod): environment:prod
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main",
+              "repo:jreakerian/colorado-subsidy-pipeline:environment:prod"
+            ]
           }
         }
       }
