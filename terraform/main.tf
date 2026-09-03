@@ -36,9 +36,9 @@ provider "aws" {
 }
 
 locals {
-  # Splits "FOFOXOE-EEB51968" → organization_name = "FOFOXOE", account_name = "EEB51968"
-  snowflake_org_name = split("-", var.snowflake_account)[0]
-  snowflake_acc_name = split("-", var.snowflake_account)[1]
+  # Handles both ORG-ACCOUNT format ("FOFOXOE-EEB51968") and simple ACCOUNT format ("EEB51968")
+  snowflake_org_name = length(split("-", var.snowflake_account)) > 1 ? split("-", var.snowflake_account)[0] : ""
+  snowflake_acc_name = length(split("-", var.snowflake_account)) > 1 ? split("-", var.snowflake_account)[1] : var.snowflake_account
 }
 
 provider "snowflake" {
