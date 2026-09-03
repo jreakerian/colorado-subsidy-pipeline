@@ -131,3 +131,4 @@ variable "existing_snowflake_external_id" {
 # ── Service account public keys ─────────────────────────────────────────────────────
 # Using shared_rsa_public_key for all service users per capstone project simplifications.
 # Trigger CI check
+# Test CI Workflow Run 2
