@@ -53,12 +53,12 @@ jobs:
           SNOWFLAKE_AUTHENTICATOR:              WORKLOAD_IDENTITY
           SNOWFLAKE_TOKEN:                      ${{ env.SNOWFLAKE_OIDC_TOKEN }}
           SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER: OIDC
+          SNOWFLAKE_USER:                       TF_CI_SVC
         run: |
           set +e
           terraform plan \
             -var-file="${{ env.TF_VARS_FILE }}" \
             -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
-            -var="snowflake_user=TF_CI_SVC" \
             -var="snowflake_role=ACCOUNTADMIN" \
             -var="shared_rsa_public_key=${{ vars.SHARED_RSA_PUBLIC_KEY }}" \
             -input=false \
