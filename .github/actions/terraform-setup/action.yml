@@ -25,6 +25,7 @@ runs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
 
     - name: Configure AWS credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
