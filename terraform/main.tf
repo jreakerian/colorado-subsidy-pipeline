@@ -43,7 +43,6 @@ locals {
 provider "snowflake" {
   organization_name = local.snowflake_org_name
   account_name      = local.snowflake_acc_name
-  user              = var.snowflake_user
   role              = var.snowflake_role
 
   # Required to use the new type-specific file format resources and WIF (preview in v2.x)

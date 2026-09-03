@@ -80,7 +80,7 @@ resource "snowflake_service_user" "dbt_cd_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:prod"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dbt-prod"
     }
   }
 }
@@ -149,6 +149,34 @@ resource "snowflake_service_user" "tf_cd_svc" {
 resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_cd" {
   role_name = "ACCOUNTADMIN"
   user_name = snowflake_service_user.tf_cd_svc.name
+}
+
+# Terraform CD apply service account — GitHub Actions OIDC, environment:prod jobs
+# When a GitHub Actions job has 'environment: prod' set, the OIDC sub claim
+# changes from 'ref:refs/heads/main' to 'environment:prod'. A dedicated user
+# is required to match that sub claim for the apply job.
+resource "snowflake_service_user" "tf_cd_apply_svc" {
+  name              = "TF_CD_APPLY_SVC"
+  comment           = "Terraform CD apply identity — WIF auth via GitHub Actions OIDC on environment:prod jobs. Requires ACCOUNTADMIN to apply Snowflake infrastructure."
+  default_warehouse = var.transforming_warehouse_name
+  default_role      = snowflake_account_role.cicd_role.name
+
+  default_workload_identity {
+    oidc {
+      issuer  = "https://token.actions.githubusercontent.com"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:prod"
+    }
+  }
+}
+
+resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_cd_apply" {
+  role_name = "ACCOUNTADMIN"
+  user_name = snowflake_service_user.tf_cd_apply_svc.name
+}
+
+resource "snowflake_grant_account_role" "grant_cicd_to_tf_cd_apply" {
+  role_name = snowflake_account_role.cicd_role.name
+  user_name = snowflake_service_user.tf_cd_apply_svc.name
 }
 
 
