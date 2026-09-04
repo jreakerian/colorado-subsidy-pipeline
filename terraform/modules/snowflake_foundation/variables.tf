@@ -21,9 +21,3 @@ variable "general_purpose_bucket" {
   description = "Name of the general-purpose project S3 bucket (raw uploads, scripts, misc)"
   type        = string
 }
-
-
-variable "snowflake_external_id" {
-  description = "The AWS_EXTERNAL_ID provided by Snowflake after DESCRIBE INTEGRATION"
-  type        = string
-}

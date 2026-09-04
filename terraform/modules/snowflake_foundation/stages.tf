@@ -18,21 +18,6 @@ resource "snowflake_file_format_csv" "csv_format" {
   depends_on = [snowflake_schema.raw]
 }
 
-# Parquet file format.
-# Migrated from deprecated snowflake_file_format → snowflake_file_format_parquet (v2.19 preview).
-# State migration commands to run ONCE after terraform init -upgrade:
-#   terraform state rm 'module.snowflake_foundation.snowflake_file_format.parquet_format'
-#   terraform import 'module.snowflake_foundation.snowflake_file_format_parquet.parquet_format' "\"<DB_NAME>\".\"RAW\".\"PARQUET_FORMAT\""
-resource "snowflake_file_format_parquet" "parquet_format" {
-  name        = "PARQUET_FORMAT"
-  database    = snowflake_database.colorado_crime_db.name
-  schema      = snowflake_schema.raw.name
-  compression = "AUTO"
-  comment     = "Parquet file format for efficient storage"
-
-  depends_on = [snowflake_schema.raw]
-}
-
 # External stage for raw CSV data (points to the general-purpose project bucket).
 # Migrated from deprecated snowflake_stage → snowflake_stage_external_s3 (stable in v2.18+).
 # file_format is now a nested block (not a raw string attribute).
