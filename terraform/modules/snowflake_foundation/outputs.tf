@@ -36,12 +36,6 @@ output "gold_schema_name" {
 }
 
 # ── Shared ───────────────────────────────────────────────────────────────────────
-output "external_volume_name" {
-  description = "Snowflake external volume name for Iceberg tables"
-  value       = snowflake_external_volume.iceberg_volume.name
-}
-
-
 output "raw_csv_stage_name" {
   description = "Name of the raw CSV stage"
   value       = snowflake_stage_external_s3.raw_csv_stage.name
