@@ -1,7 +1,4 @@
 # ── Service users for data pipeline tools ─────────────────────────────────────────
-# snowflake_legacy_service_user corresponds to TYPE = LEGACY_SERVICE, which
-# retains password authentication support.  must_change_password is not a
-# valid attribute on this resource type and has been removed.
 
 # Service user for Airflow (data loading)
 resource "snowflake_service_user" "airflow_service" {
