@@ -18,17 +18,19 @@ analytics_warehouse_size    = "SMALL"
 
 # ── Snowflake credentials (non-sensitive only) ────────────────────────────────────
 # Auth credentials (private key, passphrase, public key) are loaded from dev.env
-snowflake_account          = "FOFOXOE-EEB51968"
+snowflake_account          = "MBJASEX-DLB27711"
 snowflake_user             = "terraform_svc_user"
 snowflake_role             = "ACCOUNTADMIN"
 
-# ── Snowflake ↔ AWS Trust (from DESCRIBE INTEGRATION after initial bootstrap) ─
-# These values lock down the IAM role trust policy so only *this* Snowflake
-# account can assume the role. They are stable for the lifetime of the integration.
-snowflake_external_id  = "VQB01613_SFCRole=2_tAOOYUX/dtMGqCSl45+ogA2/Rxw="
-snowflake_iam_user_arn = "arn:aws:iam::724937262037:user/g6qp1000-s"
+# These values lock down the IAM role trust policy.
+# Because prod reuses the dev AWS infrastructure, we provide a list of ARNs and prefixes
+# to trust both the Dev Snowflake account and the Prod Snowflake account.
+snowflake_iam_user_arns = [
+  "arn:aws:iam::738540809744:user/7b652000-s", # Dev Account User
+  "arn:aws:iam::000862407413:user/avu52000-s"] # Prod Account User
 
 # Wildcard prefix covering ALL integrations (storage, external volume, API) that
-# share the SnowflakeIntegrationRole. Each integration gets a unique suffix;
-# the prefix VQB01613_SFCRole=2_ is stable for this Snowflake account.
-snowflake_external_id_prefix = "VQB01613_SFCRole=2_*"
+# share the SnowflakeIntegrationRole. Each integration gets a unique suffix.
+snowflake_external_id_prefixes = [
+  "EFB20180_SFCRole=2_*", # Dev Account Prefix
+  "CGB41232_SFCRole=2_*"] # Prod Account Prefix

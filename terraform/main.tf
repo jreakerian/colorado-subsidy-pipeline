@@ -46,15 +46,14 @@ provider "snowflake" {
   role              = var.snowflake_role
 
   # Required to use the new type-specific file format resources and WIF (preview in v2.x)
-  preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource", "snowflake_file_format_parquet_resource"]
+  preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource"]
   experimental_features_enabled = ["USER_ENABLE_DEFAULT_WORKLOAD_IDENTITY"]
 }
 
 data "aws_caller_identity" "current" {}
 
 # ── AWS Infrastructure ────────────────────────────────────────────────────────────
-# Creates the shared SnowflakeIntegrationRole, general-purpose S3 bucket,
-# and S3 Tables bucket (Silver + Gold namespaces).
+# Creates the shared SnowflakeIntegrationRole, general-purpose S3 bucket, and IAM user(s) for Snowflake to assume the role.
 # Set deploy_aws_infra = false in prod.tfvars to skip this and reuse existing resources.
 module "aws_infra" {
   source = "./modules/aws_infra"
@@ -64,9 +63,8 @@ module "aws_infra" {
   environment                  = var.environment
   lakehouse_bucket_name        = var.lakehouse_bucket_name
   aws_region                   = var.aws_region
-  snowflake_iam_user_arn       = var.snowflake_iam_user_arn
-  snowflake_external_id        = var.snowflake_external_id
-  snowflake_external_id_prefix = var.snowflake_external_id_prefix
+  snowflake_iam_user_arns        = var.snowflake_iam_user_arns
+  snowflake_external_id_prefixes = var.snowflake_external_id_prefixes
 }
 
 # ── AWS resource references ───────────────────────────────────────────────────────
@@ -77,7 +75,6 @@ module "aws_infra" {
 locals {
   snowflake_role_arn          = var.deploy_aws_infra ? module.aws_infra[0].snowflake_role_arn : var.existing_snowflake_role_arn
   general_purpose_bucket_name = var.deploy_aws_infra ? module.aws_infra[0].general_purpose_bucket_name : var.existing_general_purpose_bucket
-  snowflake_external_id_val   = var.deploy_aws_infra ? module.aws_infra[0].snowflake_external_id : var.existing_snowflake_external_id
 }
 
 # ── Snowflake Foundation ──────────────────────────────────────────────────────────
@@ -89,7 +86,6 @@ module "snowflake_foundation" {
   db_name                = var.db_name
   role_arn               = local.snowflake_role_arn
   general_purpose_bucket = local.general_purpose_bucket_name
-  snowflake_external_id  = local.snowflake_external_id_val
 }
 
 # ── Snowflake Compute ─────────────────────────────────────────────────────────────
@@ -119,6 +115,5 @@ module "snowflake_security" {
   silver_schema_name           = module.snowflake_foundation.silver_schema_name
   gold_schema_name             = module.snowflake_foundation.gold_schema_name
   csv_file_format_name         = module.snowflake_foundation.csv_file_format_name
-  parquet_file_format_name     = module.snowflake_foundation.parquet_file_format_name
   stage_dependency_placeholder = module.snowflake_foundation.raw_csv_stage_name
 }

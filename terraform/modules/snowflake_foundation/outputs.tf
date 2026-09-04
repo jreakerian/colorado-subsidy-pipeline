@@ -44,7 +44,3 @@ output "raw_csv_stage_name" {
 output "csv_file_format_name" {
   value = snowflake_file_format_csv.csv_format.name
 }
-
-output "parquet_file_format_name" {
-  value = snowflake_file_format_parquet.parquet_format.name
-}

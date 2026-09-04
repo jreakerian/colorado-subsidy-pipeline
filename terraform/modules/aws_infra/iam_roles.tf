@@ -94,7 +94,7 @@ resource "aws_iam_role" "snowflake_role" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = var.snowflake_iam_user_arn != "" ? var.snowflake_iam_user_arn : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+          AWS = length(var.snowflake_iam_user_arns) > 0 ? var.snowflake_iam_user_arns : ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
         }
         Action = "sts:AssumeRole"
         Condition = {
@@ -102,7 +102,7 @@ resource "aws_iam_role" "snowflake_role" {
           # this role (storage integration, external volume, API integration) to assume it.
           # Each integration gets a unique suffix; the prefix is stable per Snowflake account.
           StringLike = {
-            "sts:ExternalId" = var.snowflake_external_id_prefix
+            "sts:ExternalId" = var.snowflake_external_id_prefixes
           }
         }
       }

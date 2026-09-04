@@ -24,8 +24,3 @@ output "general_purpose_bucket_arn" {
   description = "ARN of the general-purpose project S3 bucket"
   value       = aws_s3_bucket.general_purpose.arn
 }
-
-output "snowflake_external_id" {
-  description = "The AWS_EXTERNAL_ID provided by Snowflake after DESCRIBE INTEGRATION"
-  value       = var.snowflake_external_id
-}
