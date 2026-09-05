@@ -19,8 +19,8 @@ jobs:
 
     env:
       WORKING_DIR:    "./terraform"
-      TF_VARS_FILE:   ${{ github.base_ref == 'main' && 'prod.tfvars' || 'dev.tfvars' }}
-      TF_ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
+      TF_VARS_FILE:   "prod.tfvars"
+      TF_ENVIRONMENT: "prod"
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
       - uses: ./.github/actions/terraform-setup
         with:
           aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CI_ROLE_ARN }}
-          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT_PROD }}
           environment:        ${{ env.TF_ENVIRONMENT }}
 
       - name: Show target environment
@@ -58,7 +58,7 @@ jobs:
           set +e
           terraform plan \
             -var-file="${{ env.TF_VARS_FILE }}" \
-            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
+            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT_PROD }}" \
             -var="snowflake_role=ACCOUNTADMIN" \
             -var="shared_rsa_public_key=${{ vars.SHARED_RSA_PUBLIC_KEY }}" \
             -input=false \
