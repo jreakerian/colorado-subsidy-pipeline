@@ -46,14 +46,14 @@ provider "snowflake" {
   role              = var.snowflake_role
 
   # Required to use the new type-specific file format resources and WIF (preview in v2.x)
-  preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource"]
+  preview_features_enabled      = ["snowflake_object_parameter_resource", "snowflake_file_format_csv_resource", "snowflake_file_format_parquet_resource"]
   experimental_features_enabled = ["USER_ENABLE_DEFAULT_WORKLOAD_IDENTITY"]
 }
 
 data "aws_caller_identity" "current" {}
 
 # ── AWS Infrastructure ────────────────────────────────────────────────────────────
-# Creates the shared SnowflakeIntegrationRole, general-purpose S3 bucket, and IAM user(s) for Snowflake to assume the role.
+# Creates the shared SnowflakeIntegrationRole, general-purpose S3 bucket
 # Set deploy_aws_infra = false in prod.tfvars to skip this and reuse existing resources.
 module "aws_infra" {
   source = "./modules/aws_infra"
