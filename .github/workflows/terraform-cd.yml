@@ -38,7 +38,7 @@ jobs:
       - uses: ./.github/actions/terraform-setup
         with:
           aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CD_ROLE_ARN }}
-          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT_PROD }}
           environment:        prod
 
       - name: Show target environment
@@ -59,7 +59,7 @@ jobs:
           set +e
           terraform plan \
             -var-file="prod.tfvars" \
-            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT }}" \
+            -var="snowflake_account=${{ vars.SNOWFLAKE_ACCOUNT_PROD }}" \
             -var="snowflake_role=ACCOUNTADMIN" \
             -var="shared_rsa_public_key=${{ vars.SHARED_RSA_PUBLIC_KEY }}" \
             -input=false \
@@ -117,7 +117,7 @@ jobs:
       - uses: ./.github/actions/terraform-setup
         with:
           aws-role-to-assume: ${{ vars.AWS_TERRAFORM_CD_ROLE_ARN }}
-          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake-account:  ${{ vars.SNOWFLAKE_ACCOUNT_PROD }}
           environment:        prod
 
       # Download the exact binary plan produced by the plan job
