@@ -88,6 +88,12 @@ runs:
 
     - name: dbt deps
       shell: bash
+      env:
+        # Override the job-level DBT_PROJECT_DIR (relative path) with the
+        # absolute path so dbt Fusion resolves --project-dir correctly from
+        # within the composite action's shell context.
+        DBT_PROJECT_DIR: ${{ github.workspace }}/${{ inputs.dbt-project-dir }}
       run: |
-        cd "${GITHUB_WORKSPACE}/${{ inputs.dbt-project-dir }}"
-        dbt deps --profiles-dir "$HOME/.dbt"
+        dbt deps \
+          --profiles-dir "$HOME/.dbt" \
+          --project-dir "${GITHUB_WORKSPACE}/${{ inputs.dbt-project-dir }}"
