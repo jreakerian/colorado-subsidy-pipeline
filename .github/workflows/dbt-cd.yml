@@ -27,7 +27,7 @@ jobs:
       contents: read    # Only needs to read the repo — no docs push happens here
 
     env:
-      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT_PROD || vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT || 'ZCELBQO-HNB09831' }}
       SNOWFLAKE_USER:       CD_SVC
       SNOWFLAKE_ROLE:       CICD_ROLE
       SNOWFLAKE_WAREHOUSE:  TRANSFORMING_WH_PROD
@@ -95,7 +95,7 @@ jobs:
       contents: write   # Required to push the generated docs to gh-pages
 
     env:
-      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT_PROD || vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT || 'ZCELBQO-HNB09831' }}
       SNOWFLAKE_USER:       CD_SVC
       SNOWFLAKE_ROLE:       CICD_ROLE
       SNOWFLAKE_WAREHOUSE:  TRANSFORMING_WH_PROD

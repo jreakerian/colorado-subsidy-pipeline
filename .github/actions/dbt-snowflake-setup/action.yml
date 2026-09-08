@@ -69,7 +69,7 @@ runs:
               type: snowflake
               account: "${SNOWFLAKE_ACCOUNT}"
               user: "${SNOWFLAKE_USER}"
-              authenticator: WORKLOAD_IDENTITY
+              authenticator: oauth
               token: "${SNOWFLAKE_OIDC_TOKEN}"
               database: "${SNOWFLAKE_DATABASE}"
               schema: "${SNOWFLAKE_SCHEMA}"
