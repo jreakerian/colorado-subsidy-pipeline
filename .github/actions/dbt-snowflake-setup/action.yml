@@ -1,0 +1,91 @@
+name: dbt Snowflake Setup (OIDC WIF)
+description: >
+  Fetches a Snowflake OIDC token via GitHub's workload identity federation,
+  writes an ephemeral profiles.yml, installs a pinned dbt-snowflake version,
+  and runs dbt deps (with package caching). Used by both the CI and CD
+  workflows so the auth/setup logic only exists in one place.
+
+inputs:
+  snowflake-account:
+    required: true
+  snowflake-user:
+    required: true
+  snowflake-role:
+    required: true
+  snowflake-warehouse:
+    required: true
+  snowflake-database:
+    required: true
+  snowflake-schema:
+    required: true
+  dbt-target:
+    required: true
+    description: Target name to use in profiles.yml (e.g. 'ci' or 'prod')
+  dbt-project-dir:
+    required: true
+    description: Path to the dbt project, relative to repo root
+  dbt-snowflake-version:
+    required: false
+    default: "1.9.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch GitHub OIDC Token
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const token = await core.getIDToken('snowflakecomputing.com');
+          core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
+          core.setSecret(token);
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+
+    - name: Install dbt Fusion (dbt-snowflake, pinned)
+      shell: bash
+      run: pip install "dbt-snowflake==${{ inputs.dbt-snowflake-version }}"
+
+    - name: Generate ephemeral profiles.yml (OIDC WIF - never committed)
+      shell: bash
+      env:
+        SNOWFLAKE_ACCOUNT_PROD: ${{ inputs.snowflake-account }}
+        SNOWFLAKE_USER: ${{ inputs.snowflake-user }}
+        SNOWFLAKE_ROLE: ${{ inputs.snowflake-role }}
+        SNOWFLAKE_WAREHOUSE: ${{ inputs.snowflake-warehouse }}
+        SNOWFLAKE_DATABASE: ${{ inputs.snowflake-database }}
+        SNOWFLAKE_SCHEMA: ${{ inputs.snowflake-schema }}
+        DBT_TARGET: ${{ inputs.dbt-target }}
+      run: |
+        mkdir -p "$HOME/.dbt"
+        cat > "$HOME/.dbt/profiles.yml" <<EOF
+        dbt_project:
+          target: ${DBT_TARGET}
+          outputs:
+            ${DBT_TARGET}:
+              type: snowflake
+              account: "${SNOWFLAKE_ACCOUNT_PROD}"
+              user: "${SNOWFLAKE_USER}"
+              authenticator: WORKLOAD_IDENTITY
+              token: "${SNOWFLAKE_OIDC_TOKEN}"
+              database: "${SNOWFLAKE_DATABASE}"
+              schema: "${SNOWFLAKE_SCHEMA}"
+              warehouse: "${SNOWFLAKE_WAREHOUSE}"
+              role: "${SNOWFLAKE_ROLE}"
+              threads: 10
+              client_session_keep_alive: false
+        EOF
+
+    - name: Cache dbt packages
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.dbt-project-dir }}/dbt_packages
+        key: dbt-packages-${{ hashFiles(format('{0}/packages.yml', inputs.dbt-project-dir)) }}
+
+    - name: dbt deps
+      shell: bash
+      working-directory: ${{ inputs.dbt-project-dir }}
+      run: dbt deps --profiles-dir "$HOME/.dbt"
