@@ -26,7 +26,7 @@ inputs:
     description: Path to the dbt project, relative to repo root
   dbt-snowflake-version:
     required: false
-    default: "1.9.1"
+    default: "1.12.0"
 
 runs:
   using: composite
@@ -61,6 +61,8 @@ runs:
         DBT_TARGET: ${{ inputs.dbt-target }}
       run: |
         mkdir -p "$HOME/.dbt"
+        echo "$SNOWFLAKE_OIDC_TOKEN" > /tmp/snowflake_oidc_token
+        chmod 600 /tmp/snowflake_oidc_token
         {
           printf 'dbt_project:\n'
           printf '  target: %s\n' "${DBT_TARGET}"
@@ -71,6 +73,7 @@ runs:
           printf '      user: "%s"\n' "${SNOWFLAKE_USER}"
           printf '      authenticator: WORKLOAD_IDENTITY\n'
           printf '      workload_identity_provider: OIDC\n'
+          printf '      token_file_path: "/tmp/snowflake_oidc_token"\n'
           printf '      database: "%s"\n' "${SNOWFLAKE_DATABASE}"
           printf '      schema: "%s"\n' "${SNOWFLAKE_SCHEMA}"
           printf '      warehouse: "%s"\n' "${SNOWFLAKE_WAREHOUSE}"
