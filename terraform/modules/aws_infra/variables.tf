@@ -19,20 +19,14 @@ variable "aws_region" {
   default     = "us-east-2"
 }
 
-variable "snowflake_iam_user_arn" {
-  description = "The AWS_IAM_USER_ARN provided by Snowflake after DESCRIBE INTEGRATION. Leave empty for initial bootstrap."
-  type        = string
-  default     = ""
+variable "snowflake_iam_user_arns" {
+  description = "List of AWS_IAM_USER_ARNs from DESCRIBE INTEGRATION. Leave empty for initial bootstrap."
+  type        = list(string)
+  default     = []
 }
 
-variable "snowflake_external_id" {
-  description = "The AWS_EXTERNAL_ID provided by Snowflake after DESCRIBE INTEGRATION. Leave dummy value for initial bootstrap."
-  type        = string
-  default     = "0000"
-}
-
-variable "snowflake_external_id_prefix" {
-  description = "Wildcard prefix for sts:ExternalId condition (e.g. 'VQB01613_SFCRole=2_*'). Allows all Snowflake integrations sharing this role to assume it. Derive from any integration's external ID by keeping everything up to and including the second underscore after 'SFCRole='."
-  type        = string
-  default     = "0000*"
+variable "snowflake_external_id_prefixes" {
+  description = "List of wildcard prefixes for sts:ExternalId condition (e.g. 'VQB01613_SFCRole=2_*')."
+  type        = list(string)
+  default     = ["0000*"]
 }

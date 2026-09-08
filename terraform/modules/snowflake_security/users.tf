@@ -1,7 +1,4 @@
 # ── Service users for data pipeline tools ─────────────────────────────────────────
-# snowflake_legacy_service_user corresponds to TYPE = LEGACY_SERVICE, which
-# retains password authentication support.  must_change_password is not a
-# valid attribute on this resource type and has been removed.
 
 # Service user for Airflow (data loading)
 resource "snowflake_service_user" "airflow_service" {
@@ -55,53 +52,11 @@ resource "snowflake_service_user" "metabase_service" {
   comment           = "Service account for Metabase operational queries"
 }
 
-# CI-only dbt service account — GitHub Actions OIDC, dev environment
-resource "snowflake_service_user" "dbt_ci_svc" {
-  name              = "DBT_CI_SVC"
-  comment           = "CI-only dbt service account, PR validation builds, WIF auth via GitHub Actions OIDC"
-  default_warehouse = var.transforming_warehouse_name
-  default_role      = snowflake_account_role.cicd_role.name
-
-  default_workload_identity {
-    oidc {
-      issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dev"
-    }
-  }
-}
-
-# CD-only dbt service account — GitHub Actions OIDC, prod environment
-resource "snowflake_service_user" "dbt_cd_svc" {
-  name              = "DBT_CD_SVC"
-  comment           = "CD-only dbt service account, prod builds and docs generation, WIF auth via GitHub Actions OIDC"
-  default_warehouse = var.transforming_warehouse_name
-  default_role      = snowflake_account_role.cicd_role.name
-
-  default_workload_identity {
-    oidc {
-      issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dbt-prod"
-    }
-  }
-}
-
-# Grant CICD_ROLE to the dbt CI service user
-resource "snowflake_grant_account_role" "grant_cicd_to_dbt_ci" {
-  role_name = snowflake_account_role.cicd_role.name
-  user_name = snowflake_service_user.dbt_ci_svc.name
-}
-
-# Grant CICD_ROLE to the dbt CD service user
-resource "snowflake_grant_account_role" "grant_cicd_to_dbt_cd" {
-  role_name = snowflake_account_role.cicd_role.name
-  user_name = snowflake_service_user.dbt_cd_svc.name
-}
-
-# Terraform CI service account — GitHub Actions OIDC, pull_request events
-# Read-only planning identity. Never used for apply.
-resource "snowflake_service_user" "tf_ci_svc" {
-  name              = "TF_CI_SVC"
-  comment           = "Terraform CI planner — WIF auth via GitHub Actions OIDC on pull_request events. Read-only; never used for apply."
+# CI service account — GitHub Actions OIDC, pull_request events
+# Read-only planning identity used by both Terraform and dbt. Never used for apply.
+resource "snowflake_service_user" "ci_svc" {
+  name              = "CI_SVC"
+  comment           = "CI planner — WIF auth via GitHub Actions OIDC on pull_request events. Read-only; never used for apply."
   default_warehouse = var.transforming_warehouse_name
   default_role      = snowflake_account_role.cicd_role.name
 
@@ -113,26 +68,27 @@ resource "snowflake_service_user" "tf_ci_svc" {
   }
 }
 
-# Grant CICD_ROLE to TF_CI_SVC
-resource "snowflake_grant_account_role" "grant_cicd_to_tf_ci" {
+# Grant CICD_ROLE to CI_SVC
+resource "snowflake_grant_account_role" "grant_cicd_to_ci" {
   role_name = snowflake_account_role.cicd_role.name
-  user_name = snowflake_service_user.tf_ci_svc.name
+  user_name = snowflake_service_user.ci_svc.name
 }
 
-# Grant ACCOUNTADMIN to TF_CI_SVC so it can read all objects during terraform plan.
+# Grant ACCOUNTADMIN to CI_SVC so it can read all objects during terraform plan.
 # Storage integrations, external volumes, and object parameters are ACCOUNTADMIN-owned
 # and invisible to lower roles, causing phantom destroys in the plan output.
-resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_ci" {
+resource "snowflake_grant_account_role" "grant_accountadmin_to_ci" {
   role_name = "ACCOUNTADMIN"
-  user_name = snowflake_service_user.tf_ci_svc.name
+  user_name = snowflake_service_user.ci_svc.name
 }
 
-# Terraform CD service account — GitHub Actions OIDC, push to main events
-# Has ACCOUNTADMIN so it can create/modify/delete all Snowflake infrastructure.
+# CD service account — GitHub Actions OIDC, push to main events
+# Used by Terraform (plan) and dbt (deploy).
+# Has ACCOUNTADMIN so it can read/modify infrastructure.
 
-resource "snowflake_service_user" "tf_cd_svc" {
-  name              = "TF_CD_SVC"
-  comment           = "Terraform CD applier — WIF auth via GitHub Actions OIDC on push to main. Requires ACCOUNTADMIN to manage Snowflake infrastructure."
+resource "snowflake_service_user" "cd_svc" {
+  name              = "CD_SVC"
+  comment           = "CD service — WIF auth via GitHub Actions OIDC on push to main. Used by Terraform plan and dbt deploy."
   default_warehouse = var.transforming_warehouse_name
   default_role      = snowflake_account_role.cicd_role.name
 
@@ -144,11 +100,10 @@ resource "snowflake_service_user" "tf_cd_svc" {
   }
 }
 
-# Grant ACCOUNTADMIN to TF_CD_SVC — required for terraform apply to provision
-# databases, warehouses, roles, users, and all other Snowflake resources
-resource "snowflake_grant_account_role" "grant_accountadmin_to_tf_cd" {
+# Grant ACCOUNTADMIN to CD_SVC
+resource "snowflake_grant_account_role" "grant_accountadmin_to_cd" {
   role_name = "ACCOUNTADMIN"
-  user_name = snowflake_service_user.tf_cd_svc.name
+  user_name = snowflake_service_user.cd_svc.name
 }
 
 # Terraform CD apply service account — GitHub Actions OIDC, environment:prod jobs
@@ -231,38 +186,56 @@ resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_metabase" {
   }
 }
 
-resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_ci_svc" {
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_ci_svc" {
   account_role_name = snowflake_account_role.cicd_role.name
   privileges        = ["MONITOR"]
   on_account_object {
     object_type = "USER"
-    object_name = snowflake_service_user.dbt_ci_svc.name
+    object_name = snowflake_service_user.ci_svc.name
   }
 }
 
-resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_dbt_cd_svc" {
+resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_cd_svc" {
   account_role_name = snowflake_account_role.cicd_role.name
   privileges        = ["MONITOR"]
   on_account_object {
     object_type = "USER"
-    object_name = snowflake_service_user.dbt_cd_svc.name
+    object_name = snowflake_service_user.cd_svc.name
   }
 }
 
-resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_tf_ci_svc" {
-  account_role_name = snowflake_account_role.cicd_role.name
-  privileges        = ["MONITOR"]
-  on_account_object {
-    object_type = "USER"
-    object_name = snowflake_service_user.tf_ci_svc.name
-  }
+# Terraform 1.1+ moved blocks to prevent recreation and OIDC collisions
+moved {
+  from = snowflake_service_user.tf_ci_svc
+  to   = snowflake_service_user.ci_svc
 }
 
-resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_tf_cd_svc" {
-  account_role_name = snowflake_account_role.cicd_role.name
-  privileges        = ["MONITOR"]
-  on_account_object {
-    object_type = "USER"
-    object_name = snowflake_service_user.tf_cd_svc.name
-  }
+moved {
+  from = snowflake_service_user.tf_cd_svc
+  to   = snowflake_service_user.cd_svc
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_cicd_to_tf_ci
+  to   = snowflake_grant_account_role.grant_cicd_to_ci
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_accountadmin_to_tf_ci
+  to   = snowflake_grant_account_role.grant_accountadmin_to_ci
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_accountadmin_to_tf_cd
+  to   = snowflake_grant_account_role.grant_accountadmin_to_cd
+}
+
+moved {
+  from = snowflake_grant_privileges_to_account_role.cicd_monitor_tf_ci_svc
+  to   = snowflake_grant_privileges_to_account_role.cicd_monitor_ci_svc
+}
+
+moved {
+  from = snowflake_grant_privileges_to_account_role.cicd_monitor_tf_cd_svc
+  to   = snowflake_grant_privileges_to_account_role.cicd_monitor_cd_svc
 }

@@ -47,11 +47,6 @@ variable "csv_file_format_name" {
   default = "CSV_FORMAT"
 }
 
-variable "parquet_file_format_name" {
-  type    = string
-  default = "PARQUET_FORMAT"
-}
-
 variable "stage_dependency_placeholder" {
   description = "Output from foundation module to enforce stage creation ordering."
   type        = any
