@@ -52,7 +52,7 @@ runs:
     - name: Generate ephemeral profiles.yml (OIDC WIF - never committed)
       shell: bash
       env:
-        SNOWFLAKE_ACCOUNT_PROD: ${{ inputs.snowflake-account }}
+        SNOWFLAKE_ACCOUNT_INPUT: ${{ inputs.snowflake-account }}
         SNOWFLAKE_USER: ${{ inputs.snowflake-user }}
         SNOWFLAKE_ROLE: ${{ inputs.snowflake-role }}
         SNOWFLAKE_WAREHOUSE: ${{ inputs.snowflake-warehouse }}
@@ -61,23 +61,29 @@ runs:
         DBT_TARGET: ${{ inputs.dbt-target }}
       run: |
         mkdir -p "$HOME/.dbt"
-        cat > "$HOME/.dbt/profiles.yml" <<EOF
-        dbt_project:
-          target: ${DBT_TARGET}
-          outputs:
-            ${DBT_TARGET}:
-              type: snowflake
-              account: "${SNOWFLAKE_ACCOUNT_PROD}"
-              user: "${SNOWFLAKE_USER}"
-              authenticator: WORKLOAD_IDENTITY
-              token: "${SNOWFLAKE_OIDC_TOKEN}"
-              database: "${SNOWFLAKE_DATABASE}"
-              schema: "${SNOWFLAKE_SCHEMA}"
-              warehouse: "${SNOWFLAKE_WAREHOUSE}"
-              role: "${SNOWFLAKE_ROLE}"
-              threads: 10
-              client_session_keep_alive: false
-        EOF
+        python3 -c "
+import os
+lines = [
+    'dbt_project:',
+    '  target: ' + os.environ['DBT_TARGET'],
+    '  outputs:',
+    '    ' + os.environ['DBT_TARGET'] + ':',
+    '      type: snowflake',
+    '      account: \"' + os.environ['SNOWFLAKE_ACCOUNT_INPUT'] + '\"',
+    '      user: \"' + os.environ['SNOWFLAKE_USER'] + '\"',
+    '      authenticator: WORKLOAD_IDENTITY',
+    '      token: \"' + os.environ['SNOWFLAKE_OIDC_TOKEN'] + '\"',
+    '      database: \"' + os.environ['SNOWFLAKE_DATABASE'] + '\"',
+    '      schema: \"' + os.environ['SNOWFLAKE_SCHEMA'] + '\"',
+    '      warehouse: \"' + os.environ['SNOWFLAKE_WAREHOUSE'] + '\"',
+    '      role: \"' + os.environ['SNOWFLAKE_ROLE'] + '\"',
+    '      threads: 10',
+    '      client_session_keep_alive: false',
+]
+import pathlib
+pathlib.Path.home().joinpath('.dbt', 'profiles.yml').write_text('\n'.join(lines) + '\n')
+print('profiles.yml written successfully')
+"
 
     - name: Cache dbt packages
       uses: actions/cache@v4
@@ -87,5 +93,5 @@ runs:
 
     - name: dbt deps
       shell: bash
-      working-directory: ${{ inputs.dbt-project-dir }}
+      working-directory: ${{ github.workspace }}/${{ inputs.dbt-project-dir }}
       run: dbt deps --profiles-dir "$HOME/.dbt"

@@ -28,8 +28,8 @@ jobs:
       SNOWFLAKE_ROLE: CICD_ROLE
       SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
       SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
-      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number }}
-      DBT_PROJECT_DIR: ./include/dbt/dbt_project
+      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number || github.run_id }}
+      DBT_PROJECT_DIR: include/dbt/dbt_project
 
     steps:
       - name: Checkout code
@@ -37,7 +37,7 @@ jobs:
       - name: Set up dbt + Snowflake OIDC auth
         uses: ./.github/actions/dbt-snowflake-setup
         with:
-          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT_PROD }}
+          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT }}
           snowflake-user: ${{ env.SNOWFLAKE_USER }}
           snowflake-role: ${{ env.SNOWFLAKE_ROLE }}
           snowflake-warehouse: ${{ env.SNOWFLAKE_WAREHOUSE }}
