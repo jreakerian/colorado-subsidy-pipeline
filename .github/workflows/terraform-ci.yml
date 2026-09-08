@@ -53,7 +53,7 @@ jobs:
           SNOWFLAKE_AUTHENTICATOR:              WORKLOAD_IDENTITY
           SNOWFLAKE_TOKEN:                      ${{ env.SNOWFLAKE_OIDC_TOKEN }}
           SNOWFLAKE_WORKLOAD_IDENTITY_PROVIDER: OIDC
-          SNOWFLAKE_USER:                       TF_CI_SVC
+          SNOWFLAKE_USER:                       CI_SVC
         run: |
           set +e
           terraform plan \
