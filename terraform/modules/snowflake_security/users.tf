@@ -1,7 +1,4 @@
 # ── Service users for data pipeline tools ─────────────────────────────────────────
-# snowflake_legacy_service_user corresponds to TYPE = LEGACY_SERVICE, which
-# retains password authentication support.  must_change_password is not a
-# valid attribute on this resource type and has been removed.
 
 # Service user for Airflow (data loading)
 resource "snowflake_service_user" "airflow_service" {
@@ -65,7 +62,7 @@ resource "snowflake_service_user" "dbt_ci_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dev"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:pull_request"
     }
   }
 }
@@ -80,7 +77,7 @@ resource "snowflake_service_user" "dbt_cd_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dbt-prod"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main"
     }
   }
 }

@@ -12,17 +12,17 @@ airflow.cfg
 airflow.db
 scripts
 sql_scripts
-fetch_and_land_raw.py
-raw_to_staging.py
 graphify-out
 dbt_dag.py
-venv2
+dbt-env/
+
 
 # Terraform files
 **/*.tfvars
 !**/dev.tfvars
 !**/prod.tfvars
 **/*.tfvars.json
+**/*.tfplan
 # State files
 **/*.tfstate
 **/*.tfstate.*

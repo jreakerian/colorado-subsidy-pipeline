@@ -36,12 +36,6 @@ output "gold_schema_name" {
 }
 
 # ── Shared ───────────────────────────────────────────────────────────────────────
-output "external_volume_name" {
-  description = "Snowflake external volume name for Iceberg tables"
-  value       = snowflake_external_volume.iceberg_volume.name
-}
-
-
 output "raw_csv_stage_name" {
   description = "Name of the raw CSV stage"
   value       = snowflake_stage_external_s3.raw_csv_stage.name
@@ -49,8 +43,4 @@ output "raw_csv_stage_name" {
 
 output "csv_file_format_name" {
   value = snowflake_file_format_csv.csv_format.name
-}
-
-output "parquet_file_format_name" {
-  value = snowflake_file_format_parquet.parquet_format.name
 }

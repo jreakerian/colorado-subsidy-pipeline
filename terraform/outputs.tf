@@ -31,11 +31,6 @@ output "snowflake_iam_user_arn" {
   value       = module.snowflake_foundation.iam_user_arn
 }
 
-output "external_volume_name" {
-  description = "Snowflake external volume name for Iceberg tables"
-  value       = module.snowflake_foundation.external_volume_name
-}
-
 output "database_name" {
   description = "Name of the Snowflake database deployed in this environment"
   value       = module.snowflake_foundation.database_name
