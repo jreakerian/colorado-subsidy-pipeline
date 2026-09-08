@@ -70,7 +70,7 @@ runs:
           printf '      account: "%s"\n' "${SNOWFLAKE_ACCOUNT_INPUT}"
           printf '      user: "%s"\n' "${SNOWFLAKE_USER}"
           printf '      authenticator: WORKLOAD_IDENTITY\n'
-          printf '      token: "%s"\n' "${SNOWFLAKE_OIDC_TOKEN}"
+          printf '      workload_identity_provider: OIDC\n'
           printf '      database: "%s"\n' "${SNOWFLAKE_DATABASE}"
           printf '      schema: "%s"\n' "${SNOWFLAKE_SCHEMA}"
           printf '      warehouse: "%s"\n' "${SNOWFLAKE_WAREHOUSE}"
