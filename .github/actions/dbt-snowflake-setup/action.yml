@@ -61,24 +61,39 @@ runs:
         DBT_TARGET: ${{ inputs.dbt-target }}
       run: |
         mkdir -p "$HOME/.dbt"
-        cat > "$HOME/.dbt/profiles.yml" <<EOF
+        python3 -c "
+        import os, textwrap
+        profile = textwrap.dedent('''
         dbt_project:
-          target: ${DBT_TARGET}
+          target: {target}
           outputs:
-            ${DBT_TARGET}:
+            {target}:
               type: snowflake
-              account: "${SNOWFLAKE_ACCOUNT}"
-              user: "${SNOWFLAKE_USER}"
+              account: \"{account}\"
+              user: \"{user}\"
               authenticator: WORKLOAD_IDENTITY
               workload_identity_provider: OIDC
-              token: "${SNOWFLAKE_OIDC_TOKEN}"
-              database: "${SNOWFLAKE_DATABASE}"
-              schema: "${SNOWFLAKE_SCHEMA}"
-              warehouse: "${SNOWFLAKE_WAREHOUSE}"
-              role: "${SNOWFLAKE_ROLE}"
+              token: \"{token}\"
+              database: \"{database}\"
+              schema: \"{schema}\"
+              warehouse: \"{warehouse}\"
+              role: \"{role}\"
               threads: 10
               client_session_keep_alive: false
-        EOF
+        ''').strip().format(
+            target=os.environ['DBT_TARGET'],
+            account=os.environ['SNOWFLAKE_ACCOUNT'],
+            user=os.environ['SNOWFLAKE_USER'],
+            token=os.environ['SNOWFLAKE_OIDC_TOKEN'],
+            database=os.environ['SNOWFLAKE_DATABASE'],
+            schema=os.environ['SNOWFLAKE_SCHEMA'],
+            warehouse=os.environ['SNOWFLAKE_WAREHOUSE'],
+            role=os.environ['SNOWFLAKE_ROLE'],
+        )
+        path = os.path.join(os.environ['HOME'], '.dbt', 'profiles.yml')
+        open(path, 'w').write(profile)
+        print('Wrote profiles.yml cleanly to', path)
+        "
 
     - name: Cache dbt packages
       uses: actions/cache@v4
