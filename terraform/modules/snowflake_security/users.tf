@@ -62,7 +62,7 @@ resource "snowflake_service_user" "dbt_ci_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dev"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:pull_request"
     }
   }
 }
@@ -77,7 +77,7 @@ resource "snowflake_service_user" "dbt_cd_svc" {
   default_workload_identity {
     oidc {
       issuer  = "https://token.actions.githubusercontent.com"
-      subject = "repo:jreakerian/colorado-subsidy-pipeline:environment:dbt-prod"
+      subject = "repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main"
     }
   }
 }
