@@ -203,3 +203,39 @@ resource "snowflake_grant_privileges_to_account_role" "cicd_monitor_cd_svc" {
     object_name = snowflake_service_user.cd_svc.name
   }
 }
+
+# Terraform 1.1+ moved blocks to prevent recreation and OIDC collisions
+moved {
+  from = snowflake_service_user.tf_ci_svc
+  to   = snowflake_service_user.ci_svc
+}
+
+moved {
+  from = snowflake_service_user.tf_cd_svc
+  to   = snowflake_service_user.cd_svc
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_cicd_to_tf_ci
+  to   = snowflake_grant_account_role.grant_cicd_to_ci
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_accountadmin_to_tf_ci
+  to   = snowflake_grant_account_role.grant_accountadmin_to_ci
+}
+
+moved {
+  from = snowflake_grant_account_role.grant_accountadmin_to_tf_cd
+  to   = snowflake_grant_account_role.grant_accountadmin_to_cd
+}
+
+moved {
+  from = snowflake_grant_privileges_to_account_role.cicd_monitor_tf_ci_svc
+  to   = snowflake_grant_privileges_to_account_role.cicd_monitor_ci_svc
+}
+
+moved {
+  from = snowflake_grant_privileges_to_account_role.cicd_monitor_tf_cd_svc
+  to   = snowflake_grant_privileges_to_account_role.cicd_monitor_cd_svc
+}
