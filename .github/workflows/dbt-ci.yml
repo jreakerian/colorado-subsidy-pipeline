@@ -25,8 +25,8 @@ jobs:
     timeout-minutes: 30
 
     env:
-      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT_DEV || vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT || 'MBJASEX-DLB27711' }}
-      SNOWFLAKE_USER: CI_SVC
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT_PROD || vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT || 'ZCELBQO-HNB09831' }}
+      SNOWFLAKE_USER: DBT_CI_SVC
       SNOWFLAKE_ROLE: CICD_ROLE
       SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
       SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
@@ -40,7 +40,7 @@ jobs:
       - name: Set up dbt + Snowflake OIDC auth
         uses: ./.github/actions/dbt-snowflake-setup
         with:
-          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT }}
+          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT_PROD }}
           snowflake-user: ${{ env.SNOWFLAKE_USER }}
           snowflake-role: ${{ env.SNOWFLAKE_ROLE }}
           snowflake-warehouse: ${{ env.SNOWFLAKE_WAREHOUSE }}
