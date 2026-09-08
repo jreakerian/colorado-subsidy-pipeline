@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "🚀 Target:     prod"
           echo "📁 Vars file:  prod.tfvars"
-          echo "🔑 Snowflake:  TF_CD_SVC @ ACCOUNTADMIN (WIF)"
+          echo "🔑 Snowflake:  CD_SVC @ ACCOUNTADMIN (WIF)"
 
       - name: Terraform Plan
         id: plan

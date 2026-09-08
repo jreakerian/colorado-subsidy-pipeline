@@ -59,10 +59,10 @@ module "aws_infra" {
   source = "./modules/aws_infra"
   count  = var.deploy_aws_infra ? 1 : 0
 
-  project_name                 = var.project_name
-  environment                  = var.environment
-  lakehouse_bucket_name        = var.lakehouse_bucket_name
-  aws_region                   = var.aws_region
+  project_name                   = var.project_name
+  environment                    = var.environment
+  lakehouse_bucket_name          = var.lakehouse_bucket_name
+  aws_region                     = var.aws_region
   snowflake_iam_user_arns        = var.snowflake_iam_user_arns
   snowflake_external_id_prefixes = var.snowflake_external_id_prefixes
 }

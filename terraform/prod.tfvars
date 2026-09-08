@@ -17,8 +17,8 @@ lakehouse_bucket_name           = "colorado-subsidy-pipeline-data-dev"
 existing_snowflake_role_arn     = "arn:aws:iam::875388088287:role/SnowflakeIntegrationRole-colorado-subsidy-pipeline-dev"
 existing_general_purpose_bucket = "colorado-subsidy-pipeline-data-dev"
 
-snowflake_iam_user_arns         = []
-snowflake_external_id_prefixes  = []
+snowflake_iam_user_arns        = []
+snowflake_external_id_prefixes = []
 
 # ── Warehouse sizing (larger for production workloads) ────────────────────────────
 loading_warehouse_size      = "XSMALL"
@@ -27,6 +27,6 @@ analytics_warehouse_size    = "MEDIUM"
 
 # ── Snowflake credentials (non-sensitive only) ────────────────────────────────────
 # Auth credentials (private key, passphrase, public key) are loaded from prod.env
-snowflake_account          = "ZCELBQO-HNB09831"
-snowflake_user             = "terraform_svc_user"
-snowflake_role             = "ACCOUNTADMIN"
+snowflake_account = "ZCELBQO-HNB09831"
+snowflake_user    = "terraform_svc_user"
+snowflake_role    = "ACCOUNTADMIN"
