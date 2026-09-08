@@ -88,5 +88,6 @@ runs:
 
     - name: dbt deps
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.dbt-project-dir }}
-      run: dbt deps --profiles-dir "$HOME/.dbt"
+      run: |
+        cd "${GITHUB_WORKSPACE}/${{ inputs.dbt-project-dir }}"
+        dbt deps --profiles-dir "$HOME/.dbt"
