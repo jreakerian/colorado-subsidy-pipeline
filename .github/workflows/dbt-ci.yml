@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'include/dbt/dbt_project/**'
+      - '.github/workflows/dbt-ci.yml'
+      - '.github/actions/dbt-snowflake-setup/**'
   workflow_dispatch:
 
 concurrency:
