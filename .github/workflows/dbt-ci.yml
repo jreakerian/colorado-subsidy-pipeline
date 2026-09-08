@@ -25,13 +25,13 @@ jobs:
     timeout-minutes: 30
 
     env:
-      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_USER: CI_SVC
       SNOWFLAKE_ROLE: CICD_ROLE
       SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
       SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
-      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number }}
-      DBT_PROJECT_DIR: ./include/dbt/dbt_project
+      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number || github.run_id }}
+      PROJECT_DIR: ./include/dbt/dbt_project
 
     steps:
       - name: Checkout code
@@ -47,7 +47,7 @@ jobs:
           snowflake-database: ${{ env.SNOWFLAKE_DATABASE }}
           snowflake-schema: ${{ env.SNOWFLAKE_SCHEMA }}
           dbt-target: ci
-          dbt-project-dir: ${{ env.DBT_PROJECT_DIR }}
+          dbt-project-dir: ${{ env.PROJECT_DIR }}
 
       # ── Download prod state for Slim CI ─────────────────────────────────────────
       # The CD workflow uploads target/ as 'dbt-prod-state' after every successful
@@ -60,13 +60,13 @@ jobs:
         continue-on-error: true
         with:
           name: dbt-prod-state
-          path: ${{ env.DBT_PROJECT_DIR }}/state
+          path: ${{ env.PROJECT_DIR }}/state
 
       # ── Create ephemeral CI schema in Snowflake ──────────────────────────────────
       # Fails the job on a real error (bad creds, no perms) instead of swallowing
       # it — only "schema already exists" is tolerated.
       - name: Create ephemeral CI schema
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           set -eo pipefail
           if ! dbt run-operation create_schema \
@@ -83,7 +83,7 @@ jobs:
 
       # ── Slim CI: run & test only modified models ─────────────────────────────────
       - name: dbt build — Slim CI (modified models only)
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           if [ -f "./state/manifest.json" ]; then
             echo "Prod state found — running Slim CI (modified+ models only, incremental)"
@@ -101,7 +101,7 @@ jobs:
       # ── Cleanup: drop ephemeral CI schema ───────────────────────────────────────
       - name: Drop ephemeral CI schema
         if: always()
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           if ! dbt run-operation drop_schema \
             --profiles-dir "$HOME/.dbt" \

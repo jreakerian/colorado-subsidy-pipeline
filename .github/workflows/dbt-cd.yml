@@ -1,4 +1,4 @@
-name: dbt CD (Deploy to Production)
+name: dbt CD (Deploy to Production — dbt Fusion & OIDC WIF)
 
 on:
   push:
@@ -6,54 +6,140 @@ on:
       - main
     paths:
       - 'include/dbt/dbt_project/**'
+  workflow_dispatch:
+
+# Prevent overlapping production builds/docs deploys from concurrent pushes.
+# Deliberately NOT cancel-in-progress: a half-finished prod build is worse
+# than a queued one.
+concurrency:
+  group: dbt-cd-prod
+  cancel-in-progress: false
 
 jobs:
+  # ── Job 1: Deploy dbt models to Production ────────────────────────────────────
   dbt-deploy:
-    name: dbt Deploy → Production
+    name: dbt Deploy → Production (OIDC WIF)
     runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 45
+    permissions:
+      id-token: write   # Mint the GitHub OIDC token for Snowflake WIF
+      contents: read    # Only needs to read the repo — no docs push happens here
+
+    env:
+      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER:       CD_SVC
+      SNOWFLAKE_ROLE:       CICD_ROLE
+      SNOWFLAKE_WAREHOUSE:  TRANSFORMING_WH_PROD
+      SNOWFLAKE_DATABASE:   COLORADO_CRIME_DB_PROD
+      SNOWFLAKE_SCHEMA:     RAW
+      PROJECT_DIR:          ./include/dbt/dbt_project
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # Push to main produces subject: repo:jreakerian/colorado-subsidy-pipeline:ref:refs/heads/main
+      # which matches the default_workload_identity configured for DBT_CD_SVC in Terraform.
+      # With 'environment: prod', the subject becomes: repo:jreakerian/colorado-subsidy-pipeline:environment:prod
+      - name: Set up dbt + Snowflake OIDC auth
+        uses: ./.github/actions/dbt-snowflake-setup
         with:
-          python-version: '3.11'
+          snowflake-account:    ${{ env.SNOWFLAKE_ACCOUNT }}
+          snowflake-user:       ${{ env.SNOWFLAKE_USER }}
+          snowflake-role:       ${{ env.SNOWFLAKE_ROLE }}
+          snowflake-warehouse:  ${{ env.SNOWFLAKE_WAREHOUSE }}
+          snowflake-database:   ${{ env.SNOWFLAKE_DATABASE }}
+          snowflake-schema:     ${{ env.SNOWFLAKE_SCHEMA }}
+          dbt-target:           prod
+          dbt-project-dir:      ${{ env.PROJECT_DIR }}
 
-      - name: Install dbt
-        run: pip install dbt-snowflake
+      # ── Source freshness check ────────────────────────────────────────────────
+      # Acts as a hard gate: a failed step halts the job by default, so a stale
+      # source blocks the production build below rather than letting it proceed
+      # on outdated data.
+      - name: Check source freshness (gate)
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dbt source freshness --profiles-dir "$HOME/.dbt"
 
-      - name: Write Snowflake Private Key
-        run: |
-          mkdir -p $HOME/.snowflake
-          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > $HOME/.snowflake/rsa_key.p8
-          chmod 600 $HOME/.snowflake/rsa_key.p8
+      # ── Full production build ─────────────────────────────────────────────────
+      - name: dbt build — Full Production
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dbt build --profiles-dir "$HOME/.dbt"
 
-      - name: dbt dependencies
-        working-directory: ./include/dbt/dbt_project
-        run: dbt deps
-
-      - name: Check Source Freshness
-        working-directory: ./include/dbt/dbt_project
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          CICD_SNOWFLAKE_USER: DBT_CD_SVC
-          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
-          DBT_TARGET: prod
-        run: dbt source freshness
-
-      - name: dbt Full Production Build
-        working-directory: ./include/dbt/dbt_project
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          CICD_SNOWFLAKE_USER: DBT_CD_SVC
-          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
-          DBT_TARGET: prod
-        run: dbt build --target prod
-
-      - name: Upload production state artifact
+      # ── Upload production state artifact ──────────────────────────────────────
+      # Downloaded by dbt-ci.yml's Slim CI job to run/test only changed models,
+      # and by the dbt-docs job below so docs are generated from the manifest
+      # of the build that actually deployed, not a fresh recompile.
+      - name: Upload production state (for Slim CI baseline + docs)
         uses: actions/upload-artifact@v4
         with:
           name: dbt-prod-state
-          path: ./include/dbt/dbt_project/target/
+          path: ${{ env.PROJECT_DIR }}/target/
           retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::error::Production dbt build failed on commit ${{ github.sha }} — check the run logs."
+        # Replace with a real notification step (Slack webhook, etc.) as needed.
+
+  # ── Job 2: Generate & deploy dbt Docs to GitHub Pages ─────────────────────────
+  dbt-docs:
+    name: Generate & Deploy dbt Docs → GitHub Pages
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: dbt-deploy   # Only run docs generation after a successful production deploy
+    timeout-minutes: 20
+    permissions:
+      id-token: write   # Mint the GitHub OIDC token for Snowflake WIF (catalog introspection)
+      contents: write   # Required to push the generated docs to gh-pages
+
+    env:
+      SNOWFLAKE_ACCOUNT:    ${{ vars.SNOWFLAKE_ACCOUNT || secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER:       CD_SVC
+      SNOWFLAKE_ROLE:       CICD_ROLE
+      SNOWFLAKE_WAREHOUSE:  TRANSFORMING_WH_PROD
+      SNOWFLAKE_DATABASE:   COLORADO_CRIME_DB_PROD
+      SNOWFLAKE_SCHEMA:     RAW
+      PROJECT_DIR:          ./include/dbt/dbt_project
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up dbt + Snowflake OIDC auth
+        uses: ./.github/actions/dbt-snowflake-setup
+        with:
+          snowflake-account:    ${{ env.SNOWFLAKE_ACCOUNT }}
+          snowflake-user:       ${{ env.SNOWFLAKE_USER }}
+          snowflake-role:       ${{ env.SNOWFLAKE_ROLE }}
+          snowflake-warehouse:  ${{ env.SNOWFLAKE_WAREHOUSE }}
+          snowflake-database:   ${{ env.SNOWFLAKE_DATABASE }}
+          snowflake-schema:     ${{ env.SNOWFLAKE_SCHEMA }}
+          dbt-target:           prod
+          dbt-project-dir:      ${{ env.PROJECT_DIR }}
+
+      # ── Reuse job 1's manifest instead of a fresh compile ───────────────────────
+      # Ensures docs reflect the exact build that was just deployed to prod,
+      # rather than whatever `dbt docs generate` would recompile from source.
+      - name: Download production state (manifest from this run's deploy)
+        uses: actions/download-artifact@v4
+        with:
+          name: dbt-prod-state
+          path: ${{ env.PROJECT_DIR }}/target
+
+      # ── Generate dbt docs ─────────────────────────────────────────────────────
+      # --no-compile reuses the downloaded manifest.json and only refreshes
+      # catalog.json from Snowflake, instead of recompiling the whole project.
+      - name: Generate dbt docs
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: dbt docs generate --profiles-dir "$HOME/.dbt" --no-compile
+
+      # ── Publish docs to GitHub Pages ─────────────────────────────────────────
+      # The generated static site is pushed to the gh-pages branch, which GitHub
+      # serves as https://<org>.github.io/colorado-subsidy-pipeline/
+      - name: Deploy docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0, pinned to SHA
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ env.PROJECT_DIR }}/target
