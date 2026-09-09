@@ -77,3 +77,4 @@ on-run-end:
   - "{{ log('Completed dbt run for Colorado Subsidy Pipeline', info=True) }}"
 flags:
   require_generic_test_arguments_property: true
+# Trigger PR CI
