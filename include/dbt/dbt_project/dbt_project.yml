@@ -54,7 +54,7 @@ models:
       facts:
         +tags: ['marts', 'fact']
 
-    
+
 seeds:
   colorado_subsidy_pipeline:
     +tags: ['seed']
