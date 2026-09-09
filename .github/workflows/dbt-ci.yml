@@ -76,7 +76,7 @@ jobs:
       - name: Create ephemeral CI schema
         run: |
           set -eo pipefail
-          if ! dbt run-operation create_schema \
+          if ! dbt run-operation create_ci_schema \
             --profiles-dir "$HOME/.dbt" \
             --project-dir "${DBT_PROJECT_DIR_ABS}" \
             --args "{schema_name: '${SNOWFLAKE_SCHEMA}', database_name: '${SNOWFLAKE_DATABASE}'}" \
@@ -112,7 +112,7 @@ jobs:
         if: always()
         working-directory: ${{ env.DBT_PROJECT_DIR }}
         run: |
-          if ! dbt run-operation drop_schema \
+          if ! dbt run-operation drop_ci_schema \
             --profiles-dir "$HOME/.dbt" \
             --project-dir "${DBT_PROJECT_DIR_ABS}" \
             --args "{schema_name: '${SNOWFLAKE_SCHEMA}', database_name: '${SNOWFLAKE_DATABASE}'}"; then
