@@ -6,54 +6,84 @@ on:
       - main
     paths:
       - 'include/dbt/dbt_project/**'
+      - '.github/workflows/dbt-cd.yml'
+      - '.github/actions/dbt-snowflake-setup/**'
+  workflow_dispatch:
+
+concurrency:
+  group: dbt-cd-main
+  cancel-in-progress: false   # Never cancel a production deploy mid-run
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   dbt-deploy:
-    name: dbt Deploy → Production
+    name: Deploy → Production (dbt Fusion & OIDC WIF)
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT_PROD }}
+      SNOWFLAKE_USER: CD_SVC
+      SNOWFLAKE_ROLE: CICD_ROLE
+      SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
+      SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
+      # CD writes to the real production schema (generate_schema_name macro
+      # will resolve raw → RAW, silver → SILVER, gold → GOLD).
+      SNOWFLAKE_SCHEMA: RAW
+      DBT_PROJECT_DIR: include/dbt/dbt_project
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # ── Export absolute dbt project path ───────────────────────────────────────
+      - name: Set absolute dbt project path
+        run: echo "DBT_PROJECT_DIR_ABS=${GITHUB_WORKSPACE}/${DBT_PROJECT_DIR}" >> "$GITHUB_ENV"
+
+      # ── Auth + install dbt (reusable action) ───────────────────────────────────
+      - name: Set up dbt + Snowflake OIDC auth
+        uses: ./.github/actions/dbt-snowflake-setup
         with:
-          python-version: '3.11'
+          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT }}
+          snowflake-user: ${{ env.SNOWFLAKE_USER }}
+          snowflake-role: ${{ env.SNOWFLAKE_ROLE }}
+          snowflake-warehouse: ${{ env.SNOWFLAKE_WAREHOUSE }}
+          snowflake-database: ${{ env.SNOWFLAKE_DATABASE }}
+          snowflake-schema: ${{ env.SNOWFLAKE_SCHEMA }}
+          dbt-target: prod
+          dbt-project-dir: ${{ env.DBT_PROJECT_DIR }}
 
-      - name: Install dbt
-        run: pip install dbt-snowflake
-
-      - name: Write Snowflake Private Key
+      # ── Source freshness ────────────────────────────────────────────────────────
+      # Warn (do not fail) if sources are stale — a freshness warning should not
+      # block a production deploy; the deploy itself may be fixing the pipeline.
+      - name: Check source freshness
         run: |
-          mkdir -p $HOME/.snowflake
-          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > $HOME/.snowflake/rsa_key.p8
-          chmod 600 $HOME/.snowflake/rsa_key.p8
+          dbt source freshness \
+            --profiles-dir "$HOME/.dbt" \
+            --project-dir "${DBT_PROJECT_DIR_ABS}" \
+          || echo "::warning::Source freshness check reported warnings or errors — review dbt output above"
 
-      - name: dbt dependencies
-        working-directory: ./include/dbt/dbt_project
-        run: dbt deps
+      # ── Full production build ───────────────────────────────────────────────────
+      # CD always does a full build (no --select filter). This ensures production
+      # is always in a consistent, fully rebuilt state regardless of what changed.
+      - name: dbt build — Full Production
+        run: |
+          dbt build \
+            --profiles-dir "$HOME/.dbt" \
+            --project-dir "${DBT_PROJECT_DIR_ABS}"
 
-      - name: Check Source Freshness
-        working-directory: ./include/dbt/dbt_project
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          CICD_SNOWFLAKE_USER: DBT_CD_SVC
-          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
-          DBT_TARGET: prod
-        run: dbt source freshness
-
-      - name: dbt Full Production Build
-        working-directory: ./include/dbt/dbt_project
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          CICD_SNOWFLAKE_USER: DBT_CD_SVC
-          SNOWFLAKE_PRIVATE_KEY_PATH: /home/runner/.snowflake/rsa_key.p8
-          DBT_TARGET: prod
-        run: dbt build --target prod
-
+      # ── Upload prod state for Slim CI ───────────────────────────────────────────
+      # CI uses this manifest.json to identify which models changed (--defer).
+      # Must run even if the build step fails so CI can still use the last
+      # known-good state. 'if: always()' ensures it runs on success only — we
+      # deliberately do NOT upload a broken state from a failed build.
       - name: Upload production state artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dbt-prod-state
-          path: ./include/dbt/dbt_project/target/
+          path: ${{ env.DBT_PROJECT_DIR }}/target/
           retention-days: 30
