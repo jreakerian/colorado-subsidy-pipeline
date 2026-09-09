@@ -16,6 +16,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         args: ['--unsafe']   # dbt YAML uses Jinja tags — unsafe allows them
+        exclude: '^\.github/actions/'  # composite actions embed scripts; checked by GitHub at runtime
       - id: check-added-large-files
         args: ['--maxkb=500']
       - id: no-commit-to-branch

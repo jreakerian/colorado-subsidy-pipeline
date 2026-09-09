@@ -26,7 +26,7 @@ inputs:
     description: Path to the dbt project, relative to repo root
   dbt-snowflake-version:
     required: false
-    default: "1.9.1"
+    default: "1.12.0"
 
 runs:
   using: composite
@@ -52,7 +52,7 @@ runs:
     - name: Generate ephemeral profiles.yml (OIDC WIF - never committed)
       shell: bash
       env:
-        SNOWFLAKE_ACCOUNT_PROD: ${{ inputs.snowflake-account }}
+        SNOWFLAKE_ACCOUNT_INPUT: ${{ inputs.snowflake-account }}
         SNOWFLAKE_USER: ${{ inputs.snowflake-user }}
         SNOWFLAKE_ROLE: ${{ inputs.snowflake-role }}
         SNOWFLAKE_WAREHOUSE: ${{ inputs.snowflake-warehouse }}
@@ -61,23 +61,27 @@ runs:
         DBT_TARGET: ${{ inputs.dbt-target }}
       run: |
         mkdir -p "$HOME/.dbt"
-        cat > "$HOME/.dbt/profiles.yml" <<EOF
-        dbt_project:
-          target: ${DBT_TARGET}
-          outputs:
-            ${DBT_TARGET}:
-              type: snowflake
-              account: "${SNOWFLAKE_ACCOUNT_PROD}"
-              user: "${SNOWFLAKE_USER}"
-              authenticator: WORKLOAD_IDENTITY
-              token: "${SNOWFLAKE_OIDC_TOKEN}"
-              database: "${SNOWFLAKE_DATABASE}"
-              schema: "${SNOWFLAKE_SCHEMA}"
-              warehouse: "${SNOWFLAKE_WAREHOUSE}"
-              role: "${SNOWFLAKE_ROLE}"
-              threads: 10
-              client_session_keep_alive: false
-        EOF
+        echo "$SNOWFLAKE_OIDC_TOKEN" > /tmp/snowflake_oidc_token
+        chmod 600 /tmp/snowflake_oidc_token
+        {
+          printf 'dbt_project:\n'
+          printf '  target: %s\n' "${DBT_TARGET}"
+          printf '  outputs:\n'
+          printf '    %s:\n' "${DBT_TARGET}"
+          printf '      type: snowflake\n'
+          printf '      account: "%s"\n' "${SNOWFLAKE_ACCOUNT_INPUT}"
+          printf '      user: "%s"\n' "${SNOWFLAKE_USER}"
+          printf '      authenticator: WORKLOAD_IDENTITY\n'
+          printf '      workload_identity_provider: OIDC\n'
+          printf '      token: "%s"\n' "${SNOWFLAKE_OIDC_TOKEN}"
+          printf '      database: "%s"\n' "${SNOWFLAKE_DATABASE}"
+          printf '      schema: "%s"\n' "${SNOWFLAKE_SCHEMA}"
+          printf '      warehouse: "%s"\n' "${SNOWFLAKE_WAREHOUSE}"
+          printf '      role: "%s"\n' "${SNOWFLAKE_ROLE}"
+          printf '      threads: 10\n'
+          printf '      client_session_keep_alive: false\n'
+        } > "$HOME/.dbt/profiles.yml"
+        echo "profiles.yml written successfully"
 
     - name: Cache dbt packages
       uses: actions/cache@v4
@@ -87,5 +91,7 @@ runs:
 
     - name: dbt deps
       shell: bash
-      working-directory: ${{ inputs.dbt-project-dir }}
-      run: dbt deps --profiles-dir "$HOME/.dbt"
+      run: |
+        dbt deps \
+          --profiles-dir "$HOME/.dbt" \
+          --project-dir "${GITHUB_WORKSPACE}/${{ inputs.dbt-project-dir }}"

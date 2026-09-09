@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'include/dbt/dbt_project/**'
+      - '.github/workflows/dbt-ci.yml'
+      - '.github/actions/dbt-snowflake-setup/**'
   workflow_dispatch:
 
 concurrency:
@@ -28,16 +30,25 @@ jobs:
       SNOWFLAKE_ROLE: CICD_ROLE
       SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
       SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
-      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number }}
-      DBT_PROJECT_DIR: ./include/dbt/dbt_project
+      SNOWFLAKE_SCHEMA: CI_PR_${{ github.event.pull_request.number || github.run_id }}
+      DBT_PROJECT_DIR: include/dbt/dbt_project
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # ── Export absolute dbt project path ─────────────────────────────────────
+      # dbt Fusion auto-reads DBT_PROJECT_DIR env var as --project-dir.
+      # Job-level env vars use relative paths which break when dbt resolves them
+      # from its own working directory. We export the absolute path here once so
+      # all subsequent steps can use $DBT_PROJECT_DIR_ABS without ambiguity.
+      - name: Set absolute dbt project path
+        run: echo "DBT_PROJECT_DIR_ABS=${GITHUB_WORKSPACE}/${DBT_PROJECT_DIR}" >> "$GITHUB_ENV"
+
       - name: Set up dbt + Snowflake OIDC auth
         uses: ./.github/actions/dbt-snowflake-setup
         with:
-          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT_PROD }}
+          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT }}
           snowflake-user: ${{ env.SNOWFLAKE_USER }}
           snowflake-role: ${{ env.SNOWFLAKE_ROLE }}
           snowflake-warehouse: ${{ env.SNOWFLAKE_WAREHOUSE }}
@@ -46,7 +57,7 @@ jobs:
           dbt-target: ci
           dbt-project-dir: ${{ env.DBT_PROJECT_DIR }}
 
-      # ── Download prod state for Slim CI ─────────────────────────────────────────
+      # ── Download prod state for Slim CI ──────────────────────────────────────
       # The CD workflow uploads target/ as 'dbt-prod-state' after every successful
       # production run. Slim CI uses this manifest to run only models that changed.
       # If no artifact exists (first ever run), the step is skipped gracefully and
@@ -59,15 +70,15 @@ jobs:
           name: dbt-prod-state
           path: ${{ env.DBT_PROJECT_DIR }}/state
 
-      # ── Create ephemeral CI schema in Snowflake ──────────────────────────────────
+      # ── Create ephemeral CI schema in Snowflake ───────────────────────────────
       # Fails the job on a real error (bad creds, no perms) instead of swallowing
       # it — only "schema already exists" is tolerated.
       - name: Create ephemeral CI schema
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
         run: |
           set -eo pipefail
-          if ! dbt run-operation create_schema \
+          if ! dbt run-operation create_ci_schema \
             --profiles-dir "$HOME/.dbt" \
+            --project-dir "${DBT_PROJECT_DIR_ABS}" \
             --args "{schema_name: '${SNOWFLAKE_SCHEMA}', database_name: '${SNOWFLAKE_DATABASE}'}" \
             2>&1 | tee /tmp/create_schema.log; then
             if grep -qi "already exists" /tmp/create_schema.log; then
@@ -78,30 +89,32 @@ jobs:
             fi
           fi
 
-      # ── Slim CI: run & test only modified models ─────────────────────────────────
+      # ── Slim CI: run & test only modified models ──────────────────────────────
       - name: dbt build — Slim CI (modified models only)
-        working-directory: ${{ env.DBT_PROJECT_DIR }}
         run: |
-          if [ -f "./state/manifest.json" ]; then
+          if [ -f "${DBT_PROJECT_DIR_ABS}/state/manifest.json" ]; then
             echo "Prod state found — running Slim CI (modified+ models only, incremental)"
             dbt build \
               --profiles-dir "$HOME/.dbt" \
+              --project-dir "${DBT_PROJECT_DIR_ABS}" \
               --select "state:modified+" \
               --defer \
-              --state ./state
+              --state "${DBT_PROJECT_DIR_ABS}/state"
           else
             echo "No prod state found — running full dbt build as fallback"
             dbt build \
-              --profiles-dir "$HOME/.dbt"
+              --profiles-dir "$HOME/.dbt" \
+              --project-dir "${DBT_PROJECT_DIR_ABS}"
           fi
 
-      # ── Cleanup: drop ephemeral CI schema ───────────────────────────────────────
+      # ── Cleanup: drop ephemeral CI schema ────────────────────────────────────
       - name: Drop ephemeral CI schema
         if: always()
         working-directory: ${{ env.DBT_PROJECT_DIR }}
         run: |
-          if ! dbt run-operation drop_schema \
+          if ! dbt run-operation drop_ci_schema \
             --profiles-dir "$HOME/.dbt" \
+            --project-dir "${DBT_PROJECT_DIR_ABS}" \
             --args "{schema_name: '${SNOWFLAKE_SCHEMA}', database_name: '${SNOWFLAKE_DATABASE}'}"; then
             echo "::warning::Failed to drop ephemeral schema ${SNOWFLAKE_SCHEMA} — manual cleanup may be needed"
           fi

@@ -5,7 +5,7 @@ version: 2
 sources:
   - name: bronze
     database: "{{ target.database }}"
-    schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'RAW') }}"
+    schema: "RAW"
     description: "Raw (bronze) tables loaded from various Colorado government data sources."
     tables:
       - name: colorado_business_entities

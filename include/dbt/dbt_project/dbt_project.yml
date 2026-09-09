@@ -54,7 +54,7 @@ models:
       facts:
         +tags: ['marts', 'fact']
 
-    
+
 seeds:
   colorado_subsidy_pipeline:
     +tags: ['seed']
@@ -77,3 +77,4 @@ on-run-end:
   - "{{ log('Completed dbt run for Colorado Subsidy Pipeline', info=True) }}"
 flags:
   require_generic_test_arguments_property: true
+# Trigger PR CI

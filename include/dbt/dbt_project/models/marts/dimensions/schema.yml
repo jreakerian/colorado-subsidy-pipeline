@@ -261,7 +261,7 @@ models:
       - name: principal_address_1
         data_type: string
       - name : dw_updated_at
-        data_type: timestamp_tz
+        data_type: timestamp_ltz
       - name: jurisdiction
         data_type: string
       - name: valid_from

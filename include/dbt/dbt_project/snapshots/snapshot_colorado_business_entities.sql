@@ -3,7 +3,7 @@
 {{
     config(
         target_schema  = 'silver',
-        target_database = env_var('DBT_DATABASE', 'COLORADO_CRIME_DB_DEV'),
+        target_database = target.database,
         unique_key     = 'entity_id',
         strategy       = 'check',
         check_cols     = [
