@@ -110,6 +110,7 @@ jobs:
       # ── Cleanup: drop ephemeral CI schema ────────────────────────────────────
       - name: Drop ephemeral CI schema
         if: always()
+        working-directory: ${{ env.DBT_PROJECT_DIR }}
         run: |
           if ! dbt run-operation drop_schema \
             --profiles-dir "$HOME/.dbt" \
