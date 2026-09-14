@@ -26,7 +26,7 @@ with
 business_snapshot as (
 
     select
-        dbt_scd_id, -- dbt_scd_id is the unique surrogate key that identifies a specific version row.
+        dbt_scd_id,
         entity_id,
         entity_name,
         entity_status,
@@ -37,17 +37,17 @@ business_snapshot as (
         principal_city,
         principal_state,
         principal_zip_code,
-        dbt_valid_from, -- dbt_valid_from / dbt_valid_to bound the period in which that version was active.
+        dbt_valid_from,
         dbt_valid_to,
         -- Derived columns computed once here rather than repeated downstream
-        dbt_valid_to is null                                        as is_current, -- dbt_valid_to IS NULL means the record is the current live version.
+        dbt_valid_to is null                                        as is_current,
         entity_status = 'Good Standing'                             as is_eligible,
         case
             when regexp_like(principal_zip_code, '{{ zip_regex }}')
                 then substring(principal_zip_code, 1, 5)
             else null
         end                                                         as clean_zip_code
-    from {{ ref('snapshot_colorado_business_entities') }}
+    from {{ ref('stg_snapshot_colorado_business_entities') }}
 
 ),
 
@@ -55,13 +55,15 @@ business_snapshot as (
 -- This join is intentionally LEFT so businesses with missing/invalid ZIP codes
 -- are still included — they simply get null resolved_county and are filtered
 -- out only in subsidy eligibility queries downstream, not here.
+-- stg_colorado_city_county_zip already outputs lower(trim(city)) and
+-- lower(trim(county)) so no further normalisation is needed here.
 geo_lookup as (
 
     select
-        cast(zip_code as varchar) as zip_code,
-        lower(trim(city))         as city,
-        lower(trim(county))       as county
-    from {{ ref('colorado_city_county_zip') }}
+        zip_code,
+        city,
+        county
+    from {{ ref('stg_colorado_city_county_zip') }}
 
 ),
 
@@ -101,7 +103,7 @@ enriched as (
 
 ),
 
--- Stable surrogate key 
+-- Stable surrogate key
 -- Use md5(entity_id || '::' || valid_from) rather than row_number() over (order by
 -- entity_id) — the previous approach.
 --
