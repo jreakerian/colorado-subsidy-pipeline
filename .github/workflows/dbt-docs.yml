@@ -1,11 +1,14 @@
 name: Deploy dbt Docs
 
 on:
-  push:
+  workflow_run:
+    workflows: ["dbt CD (Deploy to Production)"]
+    types:
+      - completed
     branches:
       - main
-    paths:
-      - 'include/dbt/dbt_project/**'
+  schedule:
+    - cron: '0 2 * * *'  # Run nightly at 2 AM
   workflow_dispatch:
 
 permissions:
@@ -14,6 +17,8 @@ permissions:
 
 jobs:
   deploy-docs:
+    # Only run if the CD pipeline succeeded, OR if manually triggered/scheduled
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: prod
     env:
@@ -84,9 +89,27 @@ jobs:
         working-directory: ./include/dbt/dbt_project
         run: dbt deps
 
+      - name: Download CD state artifact (Fast Docs)
+        # Only attempt to download if triggered by a workflow run
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: dbt-prod-state
+          path: ${{ env.DBT_PROJECT_DIR }}/state
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate Docs
         working-directory: ./include/dbt/dbt_project
-        run: dbt docs generate --profiles-dir $HOME/.dbt
+        run: |
+          if [ -d "state" ]; then
+            echo "State found, generating docs without recompiling"
+            dbt docs generate --profiles-dir $HOME/.dbt --state ./state
+          else
+            echo "No state found, generating docs from scratch"
+            dbt docs generate --profiles-dir $HOME/.dbt
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
