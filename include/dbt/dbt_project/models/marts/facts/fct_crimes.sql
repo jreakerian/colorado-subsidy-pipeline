@@ -5,7 +5,7 @@
     meta={
       'owner': 'analytics',
       'tier': 'marts',
-      'description': 'Core crime incident fact table. Granularity: 1 row per crime incident (1997-2020). All 16 KPIs aggregate from this table.'
+      'description': 'Core crime incident fact table. Granularity: 1 row per crime incident (1997-2024). All 16 KPIs aggregate from this table.'
     }
   )
 }}

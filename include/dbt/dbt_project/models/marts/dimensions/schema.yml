@@ -134,7 +134,7 @@ models:
         dimension:
           type: categorical
       - name: zip_code
-        data_type: integer
+        data_type: varchar
         dimension:
           type: categorical
       - name: cent_lat
