@@ -53,3 +53,26 @@ seeds:
         description: "Centroid longitude of the county"
         tests:
           - not_null
+
+  - name: agency_city_mapping
+    description: >
+      Maps Colorado law enforcement agency names (pub_agency_name from the
+      2016-2024 crimes dataset) to their associated city. Used in
+      int_crimes_unified to resolve city_name for records that lack a city
+      column in the source CSV.
+      Mapping rules:
+        - City police agencies → city name (e.g. 'Denver', 'Aurora')
+        - County sheriff agencies → '[County Level]'
+        - State / university agencies → NULL (cannot be attributed to a city)
+    config:
+      column_types:
+        pub_agency_name: varchar
+        city_name: varchar
+    columns:
+      - name: pub_agency_name
+        description: "Public agency name as it appears in the source crimes dataset"
+        tests:
+          - not_null
+          - unique
+      - name: city_name
+        description: "Resolved city name, '[County Level]', or NULL for unresolvable agencies"

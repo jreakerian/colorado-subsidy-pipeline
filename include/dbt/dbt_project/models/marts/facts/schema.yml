@@ -47,10 +47,13 @@ models:
       - name: geo_key
         data_type: integer
         tests: [not_null]
-        description: "FK to dim_geography"
+        description: "FK to dim_geography (county-level row; always populated)"
         entity:
           type: foreign
           name: geo
+      - name: city_geo_key
+        data_type: integer
+        description: "FK to dim_geography (city-level row; NULL when city could not be resolved from agency_city_mapping)"
       - name: offense_key
         data_type: integer
         tests: [not_null]
