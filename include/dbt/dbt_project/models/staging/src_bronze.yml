@@ -26,7 +26,7 @@ sources:
         description: "Crime incident records 1997-2015 from CDPS / FBI Crime Data Explorer"
 
       - name: colorado_crimes_2016_2020
-        description: "Crime incident records 2016-2020 from FBI Crime Data Explorer"
+        description: "Crime incident records 2016-2024 from FBI Crime Data Explorer"
 
       - name: colorado_income
         description: "Personal income data from Colorado Department of Labor and Employment"

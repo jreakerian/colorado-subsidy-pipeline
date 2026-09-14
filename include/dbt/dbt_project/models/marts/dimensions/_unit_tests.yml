@@ -5,17 +5,22 @@ unit_tests:
       Also verifies that the geo lookup correctly resolves the county from the zip code seed.
     model: dim_business
     given:
-      - input: ref('snapshot_colorado_business_entities')
+      # Unit test inputs must reference the models that dim_business directly reads.
+      # Now that dim_business reads stg_snapshot_colorado_business_entities and
+      # stg_colorado_city_county_zip (not the raw seed/snapshot), mock data is
+      # supplied at the staging model level — reflecting the normalised output
+      # those staging views produce (lowercase city/county, typed zip_code).
+      - input: ref('stg_snapshot_colorado_business_entities')
         format: csv
         rows: |
           dbt_scd_id,entity_id,entity_name,entity_status,entity_type,entity_form_date,jurisdiction_of_formation,principal_address_1,principal_city,principal_state,principal_zip_code,dbt_valid_from,dbt_valid_to
           old_hash,1001,Acme Corp,Good Standing,LLC,2020-01-15,Colorado,123 Main St,Denver,Denver,80202,2023-01-01 00:00:00,2024-06-01 00:00:00
           new_hash,1001,Acme Corp LLC,Good Standing,LLC,2020-01-15,Colorado,123 Main St,Denver,Denver,80202,2024-06-01 00:00:00,
-      - input: ref('colorado_city_county_zip')
+      - input: ref('stg_colorado_city_county_zip')
         format: csv
         rows: |
           zip_code,city,county
-          80202,Denver,Denver
+          80202,denver,denver
     expect:
       format: csv
       rows: |
@@ -29,16 +34,16 @@ unit_tests:
       to 'Unknown' in the final output.
     model: dim_business
     given:
-      - input: ref('snapshot_colorado_business_entities')
+      - input: ref('stg_snapshot_colorado_business_entities')
         format: csv
         rows: |
           dbt_scd_id,entity_id,entity_name,entity_status,entity_type,entity_form_date,jurisdiction_of_formation,principal_address_1,principal_city,principal_state,principal_zip_code,dbt_valid_from,dbt_valid_to
           ccc,9999,,Good Standing,Corporation,2019-05-01,Colorado,,Boulder,Boulder,80301,2023-01-01 00:00:00,
-      - input: ref('colorado_city_county_zip')
+      - input: ref('stg_colorado_city_county_zip')
         format: csv
         rows: |
           zip_code,city,county
-          80301,Boulder,Boulder
+          80301,boulder,boulder
     expect:
       format: csv
       rows: |
