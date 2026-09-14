@@ -7,7 +7,7 @@
 }}
 
 with source as (
-    select * from {{ source('bronze', 'colorado_crimes_2016_2020') }}
+    select * from {{ source('bronze', 'colorado_crimes_2016_2024') }}
 ),
 
 cleaned as (
@@ -21,7 +21,7 @@ cleaned as (
         offense_category_name,
         offense_group,
         cast(age_num as integer) as age_num,
-        '2016_2020' as source_period
+        '2016_2024' as source_period
     from source
 )
 
