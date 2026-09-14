@@ -7,10 +7,12 @@ models:
 
   - name: int_crimes_unified
     description: >
-      Unified, normalized crime incidents from 1997–2020. Single source of truth
+      Unified, normalized crime incidents from 1997–2024. Single source of truth
       for fct_crimes, dim_offense, and dim_agency. Applies all cleansing logic
       (agency normalization, county string splitting, date parsing, offense
       sentence-casing) exactly once. Filters to Property / Person / Society only.
+      Includes city_name resolved from the agency_city_mapping seed for 2016–2024
+      records and passed through directly for 1997–2015 records.
     config:
       tags: ['intermediate', 'core']
       meta:
@@ -24,6 +26,12 @@ models:
       - name: county_name
         description: "Normalized county name(s), comma-sorted for multi-county agencies"
         tests: [not_null]
+      - name: city_name
+        description: >
+          City name for the incident. For 1997–2015 records: passed through from
+          the source CSV. For 2016–2024 records: derived from agency_city_mapping
+          seed (city agencies → city name; county sheriffs → '[County Level]';
+          state/university agencies → NULL). NULL means city could not be resolved.
       - name: incident_date
         description: "Parsed incident date (DATE type)"
         tests: [not_null]

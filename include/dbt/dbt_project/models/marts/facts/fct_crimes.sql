@@ -5,7 +5,7 @@
     meta={
       'owner': 'analytics',
       'tier': 'marts',
-      'description': 'Core crime incident fact table. Granularity: 1 row per crime incident (1997-2020). All 16 KPIs aggregate from this table.'
+      'description': 'Core crime incident fact table. Granularity: 1 row per crime incident (1997-2024). All 16 KPIs aggregate from this table. geo_key = county grain; city_geo_key = city grain (nullable).'
     }
   )
 }}
@@ -74,8 +74,9 @@ joined as (
         ag.agency_key,
         o.offense_key,
 
-        -- Geography: join on county (city_name = '[County Level]' for county-only records)
-        g.geo_key
+        -- Geography keys
+        g.geo_key,
+        city_g.geo_key as city_geo_key
     from crimes as c
 
     left join dim_date as d
@@ -90,11 +91,22 @@ joined as (
             and c.offense_name = o.offense_name
             and c.crime_against = o.crime_against
 
-    -- Join to county-level geography (county-only grain, city = '[County Level]')
+    -- County-level geography join (preserved for backward compatibility)
+    -- geo_key resolves to the county-level row in dim_geography
     left join dim_geo as g
         on
             lower(trim(split_part(c.county_name, ',', 1))) = lower(trim(g.county_name))
             and g.city_name = '[County Level]'
+
+    -- City-level geography join (Phase 1.2)
+    -- city_geo_key resolves to the city-level row when city_name is known
+    -- and is a real city (not '[County Level]', not NULL).
+    left join dim_geo as city_g
+        on
+            lower(trim(split_part(c.county_name, ',', 1))) = lower(trim(city_g.county_name))
+            and lower(trim(c.city_name)) = lower(trim(city_g.city_name))
+            and city_g.city_name != '[County Level]'
+            and c.city_name is not null
 )
 
 select
@@ -107,7 +119,8 @@ select
 
     -- Foreign keys to dimensions
     date_key,
-    geo_key,
+    geo_key,          -- county-level geography key (always populated)
+    city_geo_key,     -- city-level geography key (NULL if city unknown)
     offense_key,
     agency_key,
 
