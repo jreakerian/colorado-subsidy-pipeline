@@ -48,7 +48,7 @@ models:
         description: "Broad offense category (e.g., Larceny/Theft Offenses)"
         tests: [not_null]
       - name: offense_group
-        description: "Offense group — populated for 2016–2024 records only; NULL for 1997–2015"
+        description: "Offense group — populated for 2016–2020 records only; NULL for 1997–2015"
       - name: age_num
         description: "Age of offender (~47% null across both source datasets)"
         tests:
@@ -57,12 +57,12 @@ models:
                 min_value: 0
                 max_value: 120
       - name: source_period
-        description: "Source dataset identifier: '1997_2015' or '2016_2024'"
+        description: "Source dataset identifier: '1997_2015' or '2016_2020'"
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['1997_2015', '2016_2024']
+                values: ['1997_2015', '2016_2020']
       - name: incident_year
         tests: [not_null]
       - name: incident_month
