@@ -163,3 +163,145 @@ models:
       - name: subsidy_message
         data_type: varchar
         tests: [not_null]
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # LAW ENFORCEMENT — City-Level Crime KPIs (Phase 1.2)
+  # Audience: Law enforcement planners, city-level crime analysts
+  # Source: fct_crimes.city_geo_key → dim_geography (city rows only)
+  # ══════════════════════════════════════════════════════════════════════════
+
+  - name: rpt_city_time_trends
+    description: >-
+      City KPI 1 & 6. Seasonal crime trends and day-of-week crime patterns per city.
+      One row per city × month × day_of_week. Only includes records where
+      city_geo_key is not null (i.e., city was successfully resolved via
+      agency_city_mapping seed). Window functions provide avg_monthly_crimes and
+      avg_dow_crimes for trend comparison.
+    config:
+      tags: ['marts', 'reporting', 'law_enforcement', 'city', 'kpi']
+    columns:
+      - name: city_name
+        data_type: varchar
+        tests: [not_null]
+        description: "Resolved city name from dim_geography"
+      - name: county_name
+        data_type: varchar
+        tests: [not_null]
+        description: "Parent county for the city"
+      - name: month
+        data_type: integer
+        tests: [not_null]
+        description: "Month number (1-12)"
+      - name: month_name
+        data_type: varchar
+        tests: [not_null]
+        description: "Month name (January-December)"
+      - name: season
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['winter', 'spring', 'summer', 'fall']
+        description: "Season derived from month"
+      - name: day_of_week
+        data_type: integer
+        tests: [not_null]
+        description: "Day of week (1=Sunday, 7=Saturday)"
+      - name: day_name
+        data_type: varchar
+        tests: [not_null]
+        description: "Day name (Monday-Sunday)"
+      - name: total_crimes
+        data_type: integer
+        tests: [not_null]
+        description: "Total crime incidents for this city × month × day_of_week"
+      - name: avg_monthly_crimes
+        data_type: float
+        description: "Window avg: average crimes for this city in this month across all day-of-weeks"
+      - name: avg_dow_crimes
+        data_type: float
+        description: "Window avg: average crimes for this city on this day-of-week across all months"
+
+  - name: rpt_city_time_of_day_crimes
+    description: >-
+      City KPI 2 & 4. Top 3 most common crime categories during daytime (6AM-6PM)
+      and nighttime (6PM-6AM) per city. One row per city × time_of_day ×
+      offense_category_name where rank ≤ 3. Rank 1 = highest crime count.
+    config:
+      tags: ['marts', 'reporting', 'law_enforcement', 'city', 'kpi']
+    columns:
+      - name: city_name
+        data_type: varchar
+        tests: [not_null]
+      - name: county_name
+        data_type: varchar
+        tests: [not_null]
+      - name: time_of_day
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['day', 'night']
+        description: "Incident time slot: 'day' (6AM-6PM) or 'night' (6PM-6AM)"
+      - name: offense_category_name
+        data_type: varchar
+        tests: [not_null]
+        description: "Broad crime category"
+      - name: crime_against
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Property', 'Person', 'Society']
+      - name: crime_count
+        data_type: integer
+        tests: [not_null]
+        description: "Total incidents for this city × time_of_day × offense_category"
+      - name: rnk
+        data_type: integer
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3]
+        description: "Rank within city × time_of_day (1 = most common)"
+
+  - name: rpt_city_crime_demographics
+    description: >-
+      City KPI 3 & 5. Average offender age and crime type distribution
+      (Property / Person / Society) per city. One row per city ×
+      offense_category_name × crime_against. avg_offender_age is NULL for
+      records where age was not captured in the source (~47% of all incidents).
+    config:
+      tags: ['marts', 'reporting', 'law_enforcement', 'city', 'kpi']
+    columns:
+      - name: city_name
+        data_type: varchar
+        tests: [not_null]
+      - name: county_name
+        data_type: varchar
+        tests: [not_null]
+      - name: offense_category_name
+        data_type: varchar
+        tests: [not_null]
+      - name: crime_against
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Property', 'Person', 'Society']
+        description: "Crime classification: Property, Person, or Society"
+      - name: total_crimes
+        data_type: integer
+        tests: [not_null]
+        description: "Total incidents for this city × offense_category × crime_against"
+      - name: avg_offender_age
+        data_type: float
+        description: "Average age of individual involved; NULL where age was not recorded"
+      - name: pct_of_city_crimes
+        data_type: float
+        description: "Percentage share of this row's crimes out of all city crimes (0-100)"
