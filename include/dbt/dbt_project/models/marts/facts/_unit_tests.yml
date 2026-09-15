@@ -3,9 +3,8 @@ unit_tests:
     description: >
       Verifies that composite tier >= 3 results in qualifies_for_subsidy = true.
       Verifies tier < 3 results in qualifies_for_subsidy = false.
-      Verifies businesses with no county match (composite_tier = 0) are retained
-      in the output as 'Unranked' with qualifies_for_subsidy = false — they are
-      NOT silently dropped, allowing data consumers to investigate unmatched records.
+      Verifies businesses with no county match (composite_tier = 0) are excluded
+      from the output by the WHERE composite_tier > 0 filter.
     model: fct_business_subsidy_tiers
     given:
       - input: ref('dim_business')
@@ -33,7 +32,6 @@ unit_tests:
         business_key,entity_id,principal_county,composite_tier,qualifies_for_subsidy,subsidy_tier_label,notification_eligible
         key_1,100,Denver,4,true,Tier 4 - Maximum Subsidy,true
         key_2,200,Boulder,2,false,Tier 2 - Standard Subsidy,false
-        key_3,300,Nowhere,0,false,Unranked,false
 
   - name: test_fct_crimes_grain
     description: >

@@ -262,7 +262,7 @@ models:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
-                min_value: 0
+                min_value: 1
                 max_value: 4
       - name: qualifies_for_subsidy
         data_type: boolean
