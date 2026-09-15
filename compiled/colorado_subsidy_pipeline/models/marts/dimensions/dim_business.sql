@@ -53,6 +53,20 @@ geo_lookup as (
 
 ),
 
+-- Secondary lookup: one representative county per city name.
+-- Used when the zip code is missing, invalid, or not in the seed.
+-- If a city maps to multiple counties (rare edge case), pick the most
+-- common one deterministically via min() so the result is stable.
+city_lookup as (
+
+    select
+        city,
+        min(county) as county
+    from COLORADO_CRIME_DB_PROD.raw.stg_colorado_city_county_zip
+    group by city
+
+),
+
 -- Enrich each snapshot version with resolved geography
 enriched as (
 
@@ -75,17 +89,26 @@ enriched as (
         coalesce(s.entity_name, 'Unknown')                          as entity_name,
 
         -- County resolution priority:
-        --   1. ZIP lookup  → most reliable, ties the business to a specific county
-        --   2. State field → last-resort fallback when ZIP is missing/invalid
-        coalesce(g.county, lower(trim(s.principal_state)))          as resolved_county,
+        --   1. ZIP lookup  → most reliable; ties the business to a specific county
+        --   2. City lookup → fallback for businesses with out-of-state, invalid,
+        --                    or seed-missing zip codes but a known Colorado city
+        --   3. State field → last resort; results in 'co'/'colorado' which will
+        --                    not match any county tier (intentionally excluded downstream)
+        coalesce(
+            gz.county,
+            gc.county,
+            lower(trim(s.principal_state))
+        )                                                           as resolved_county,
 
         -- Prefer the lookup city (normalized) over the raw API city name to
         -- avoid county mismatches from typos in the source (e.g. "DENVERL")
-        coalesce(g.city, lower(trim(s.principal_city)))             as resolved_city
+        coalesce(gz.city, lower(trim(s.principal_city)))            as resolved_city
 
     from business_snapshot as s
-    left join geo_lookup as g
-        on s.clean_zip_code = g.zip_code
+    left join geo_lookup as gz
+        on s.clean_zip_code = gz.zip_code
+    left join city_lookup as gc
+        on lower(trim(s.principal_city)) = gc.city
 
 ),
 
