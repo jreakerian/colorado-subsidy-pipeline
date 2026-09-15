@@ -6,11 +6,13 @@ with income as (
 
 avg_income as (
     select
-        county,
-        avg(median_household_income) as avg_median_household_income
+        -- Normalize census-style county names (e.g. 'Denver County' → 'denver')
+        -- so this model's output county joins cleanly with crime and population tiers.
+        replace(lower(trim(county)), ' county', '') as county,
+        avg(median_household_income)                as avg_median_household_income
     from income
     where median_household_income is not null
-    group by county
+    group by replace(lower(trim(county)), ' county', '')
 ),
 
 percentile_ranked as (

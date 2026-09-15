@@ -64,7 +64,7 @@ final as (
         crime_tier,
         income_tier,
         population_tier,
-        round(composite_tier) as composite_tier,
+        round(composite_tier)                       as composite_tier,
         coalesce(round(composite_tier) >= 3, false) as qualifies_for_subsidy,
         case round(composite_tier)
             when 4 then 'Tier 4 - Maximum Subsidy'
@@ -72,9 +72,10 @@ final as (
             when 2 then 'Tier 2 - Standard Subsidy'
             when 1 then 'Tier 1 - Basic Review'
             else 'Unranked'
-        end as subsidy_tier_label,
-        -- Notification eligibility: active business that qualifies
-        coalesce(qualifies_for_subsidy = true, false) as notification_eligible
+        end                                         as subsidy_tier_label,
+        -- Notification eligibility: active business that qualifies for subsidy.
+        -- Inlined (cannot reference a same-SELECT alias in Snowflake).
+        coalesce(round(composite_tier) >= 3, false) as notification_eligible
     from joined
     where composite_tier > 0   -- exclude businesses with no county match
 )

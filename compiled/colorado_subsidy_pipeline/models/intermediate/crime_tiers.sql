@@ -29,7 +29,9 @@ percentile_ranked as (
 )
 
 select
-    county_name,
+    -- Normalize county names to lowercase plain strings consistent with
+    -- stg_colorado_city_county_zip and the other tier models.
+    lower(trim(county_name)) as county_name,
     offense_category_name,
     total_crimes,
     crime_percentile,
