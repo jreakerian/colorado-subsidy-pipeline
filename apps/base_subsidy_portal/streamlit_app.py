@@ -224,6 +224,49 @@ def render_single_result(row) -> None:
     tier_color = "green" if qualifies else "gray"
     st.markdown(f"### :{tier_color}[{tier_label}]")
 
+    composite_tier = row.get("COMPOSITE_TIER")
+    if composite_tier == 1:
+        st.markdown("""**Annual Subsidy:** $1,000
+**Included Benefits:**
+- $1,000 subsidy for security systems
+- Discounted installation services
+- Access to a directory of approved vendors
+- Basic online support and troubleshooting
+- Crime prevention best practices
+- Marketing materials and badges""")
+    elif composite_tier == 2:
+        st.markdown("""**Annual Subsidy:** $1,500
+**Included Benefits:**
+- $1,500 subsidy for security systems
+- Free installation or subsidized installation
+- One-time training on security systems
+- 24/7 support and on-site repairs
+- Extended warranty (1 year)
+- Vendor discounts for third-party services
+- Marketing and social media promotion
+- Referral program for future subsidies""")
+    elif composite_tier == 3:
+        st.markdown("""**Annual Subsidy:** $2,000
+**Included Benefits:**
+- $2,000 subsidy for security systems
+- Free premium installation & consultations
+- 24/7 priority support
+- Cybersecurity service discounts
+- Free annual security audit
+- Monitoring service discounts
+- Extended warranty (2 years)
+- Performance-based incentives""")
+    elif composite_tier == 4:
+        st.markdown("""**Annual Subsidy:** $2,500
+**Included Benefits:**
+- $2,500 subsidy for security systems
+- Full-service custom installations
+- Premium 24/7 support with on-site assistance
+- Comprehensive cybersecurity integration
+- 3-year extended warranty and maintenance
+- Priority access to top-tier vendors
+- Annual security reviews""")
+
     message = row["SUBSIDY_MESSAGE"] or "No eligibility message is available for this business."
     if qualifies:
         st.success(message, icon=":material/check_circle:")
