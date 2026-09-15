@@ -8,7 +8,7 @@ with all_values as (
         crime_against as value_field,
         count(*) as n_records
 
-    from COLORADO_CRIME_DB_DEV.gold.dim_offense
+    from COLORADO_CRIME_DB_PROD.gold.dim_offense
     group by crime_against
 
 )

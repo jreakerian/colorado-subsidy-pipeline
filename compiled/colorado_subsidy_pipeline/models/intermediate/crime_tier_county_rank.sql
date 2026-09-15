@@ -1,7 +1,7 @@
 
 
 with crime_tiers as (
-    select * from COLORADO_CRIME_DB_DEV.silver.crime_tiers
+    select * from COLORADO_CRIME_DB_PROD.silver.crime_tiers
 )
 
 select

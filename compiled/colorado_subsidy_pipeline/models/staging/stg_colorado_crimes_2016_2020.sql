@@ -1,7 +1,7 @@
 
 
 with source as (
-    select * from COLORADO_CRIME_DB_DEV.RAW.colorado_crimes_2016_2020
+    select * from COLORADO_CRIME_DB_PROD.RAW.colorado_crimes_2016_2020
 ),
 
 cleaned as (

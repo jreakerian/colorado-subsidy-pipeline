@@ -16,7 +16,7 @@
  as expression
 
 
-    from COLORADO_CRIME_DB_DEV.silver.income_tier
+    from COLORADO_CRIME_DB_PROD.silver.income_tier
     
 
 ),

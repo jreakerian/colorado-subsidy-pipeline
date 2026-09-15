@@ -19,7 +19,7 @@ with income as (
     )
   )
  as county_normalized
-    from COLORADO_CRIME_DB_DEV.raw.stg_colorado_income
+    from COLORADO_CRIME_DB_PROD.raw.stg_colorado_income
     where
         year between 1997 and 2024
         and income is not null
@@ -46,7 +46,7 @@ population as (
     )
   )
  as county_normalized
-    from COLORADO_CRIME_DB_DEV.raw.stg_colorado_population
+    from COLORADO_CRIME_DB_PROD.raw.stg_colorado_population
     where year between 1997 and 2024
 ),
 

@@ -3,7 +3,7 @@
 select
     entity_id,
     count(*) as current_version_count
-from COLORADO_CRIME_DB_DEV.gold.dim_business
+from COLORADO_CRIME_DB_PROD.gold.dim_business
 where is_current = true
 group by entity_id
 having count(*) != 1

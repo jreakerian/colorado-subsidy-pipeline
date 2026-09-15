@@ -4,7 +4,7 @@ with crime_rank as (
     select
         county_name as county,
         overall_crime_tier as crime_rank
-    from COLORADO_CRIME_DB_DEV.silver.crime_tier_county_rank
+    from COLORADO_CRIME_DB_PROD.silver.crime_tier_county_rank
     where overall_crime_tier > 0
 ),
 
@@ -12,7 +12,7 @@ income_rank as (
     select
         county,
         income_tier as income_rank
-    from COLORADO_CRIME_DB_DEV.silver.income_tier
+    from COLORADO_CRIME_DB_PROD.silver.income_tier
     where income_tier > 0
 ),
 
@@ -20,7 +20,7 @@ population_rank as (
     select
         county,
         crime_per_capita_tier as population_rank
-    from COLORADO_CRIME_DB_DEV.silver.population_crime_per_capita_tier
+    from COLORADO_CRIME_DB_PROD.silver.population_crime_per_capita_tier
     where crime_per_capita_tier > 0
 ),
 

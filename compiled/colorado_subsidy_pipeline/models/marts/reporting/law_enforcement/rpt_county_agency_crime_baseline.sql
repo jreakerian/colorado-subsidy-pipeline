@@ -3,11 +3,11 @@
 -- KPI: Set a 5% crime reduction goal per police agency per county.
 -- Thin wrapper over fct_crimes + dim_agency.
 with crimes as (
-    select * from COLORADO_CRIME_DB_DEV.gold.fct_crimes
+    select * from COLORADO_CRIME_DB_PROD.gold.fct_crimes
 ),
 
 agency as (
-    select * from COLORADO_CRIME_DB_DEV.gold.dim_agency
+    select * from COLORADO_CRIME_DB_PROD.gold.dim_agency
 )
 
 select

@@ -1,7 +1,7 @@
 
 
 with crimes_1997_2015 as (
-    select * from COLORADO_CRIME_DB_DEV.raw.stg_colorado_crimes_1997_2015
+    select * from COLORADO_CRIME_DB_PROD.raw.stg_colorado_crimes_1997_2015
     where
         crime_against in ('Property', 'Person', 'Society')
         and incident_date is not null
@@ -11,7 +11,7 @@ with crimes_1997_2015 as (
 ),
 
 crimes_2016_2020 as (
-    select * from COLORADO_CRIME_DB_DEV.raw.stg_colorado_crimes_2016_2020
+    select * from COLORADO_CRIME_DB_PROD.raw.stg_colorado_crimes_2016_2020
     where
         crime_against in ('Property', 'Person', 'Society')
         and incident_date is not null
@@ -20,52 +20,64 @@ crimes_2016_2020 as (
         and agency_name is not null
 ),
 
+-- Phase 1.2: agency → city lookup for 2016-2020 records.
+-- The seed maps pub_agency_name to city_name:
+--   city police agencies  → city name (e.g. 'Denver', 'Aurora')
+--   county sheriffs       → '[County Level]'
+--   state/university      → NULL (cannot be attributed to a city)
+agency_city_map as (
+    select * from COLORADO_CRIME_DB_PROD.PUBLIC.agency_city_mapping
+),
+
 unioned_raw as (
+    -- 1997-2015: real city_name column exists in staging model
     select
         agency_name,
-        null as agency_type_name,   -- not present in 2016-2020; pad 1997-2015 too for parity
-        null as city_name,           -- not reliably present; resolved via dim_geography
+        null as agency_type_name,
+        city_name,
         county_name,
         incident_date,
         incident_hour,
         offense_name,
         crime_against,
         offense_category_name,
-        null as offense_group,       -- only in 2016-2020
+        null as offense_group,
         age_num,
         source_period
     from crimes_1997_2015
 
     union all
 
+    -- 2016-2020: no city column in source; derive from agency_city_mapping seed
     select
-        agency_name,
+        n.agency_name,
         null as agency_type_name,
-        null as city_name,
-        county_name,
-        incident_date,
-        incident_hour,
-        offense_name,
-        crime_against,
-        offense_category_name,
-        offense_group,
-        age_num,
-        source_period
-    from crimes_2016_2020
+        m.city_name,
+        n.county_name,
+        n.incident_date,
+        n.incident_hour,
+        n.offense_name,
+        n.crime_against,
+        n.offense_category_name,
+        n.offense_group,
+        n.age_num,
+        n.source_period
+    from crimes_2016_2020 as n
+    left join agency_city_map as m
+        on n.agency_name = m.pub_agency_name
 ),
 
 normalized as (
     select
         incident_date,
-
         incident_hour,
-
         crime_against,
         offense_category_name,
-        -- Offense name: sentence-case
         offense_group,
         age_num,
         source_period,
+        -- City name passes through as-is (cleaned in seed / staging layer)
+        city_name,
         trim(regexp_replace(
             regexp_replace(regexp_replace(regexp_replace(
                 agency_name,
@@ -93,6 +105,7 @@ final as (
     select
         agency_name,
         county_name,
+        city_name,
         incident_date,
         incident_hour,
         offense_name,

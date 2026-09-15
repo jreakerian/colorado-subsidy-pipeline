@@ -7,7 +7,7 @@
 */
 
 with crimes as (
-    select * from COLORADO_CRIME_DB_DEV.silver.int_crimes_unified
+    select * from COLORADO_CRIME_DB_PROD.silver.int_crimes_unified
 ),
 
 dim_date as (
@@ -15,7 +15,7 @@ dim_date as (
         date_key,
         full_date,
         date_day
-    from COLORADO_CRIME_DB_DEV.gold.dim_date
+    from COLORADO_CRIME_DB_PROD.gold.dim_date
 ),
 
 dim_geo as (
@@ -24,7 +24,7 @@ dim_geo as (
         city_name,
         county_name,
         zip_code
-    from COLORADO_CRIME_DB_DEV.gold.dim_geography
+    from COLORADO_CRIME_DB_PROD.gold.dim_geography
 ),
 
 dim_offense as (
@@ -34,7 +34,7 @@ dim_offense as (
         offense_name,
         crime_against,
         offense_group
-    from COLORADO_CRIME_DB_DEV.gold.dim_offense
+    from COLORADO_CRIME_DB_PROD.gold.dim_offense
 ),
 
 dim_agency as (
@@ -42,7 +42,7 @@ dim_agency as (
         agency_key,
         agency_name,
         primary_county
-    from COLORADO_CRIME_DB_DEV.gold.dim_agency
+    from COLORADO_CRIME_DB_PROD.gold.dim_agency
 ),
 
 -- Join dimensions to resolve surrogate keys
@@ -64,8 +64,9 @@ joined as (
         ag.agency_key,
         o.offense_key,
 
-        -- Geography: join on county (city_name = '[County Level]' for county-only records)
-        g.geo_key
+        -- Geography keys
+        g.geo_key,
+        city_g.geo_key as city_geo_key
     from crimes as c
 
     left join dim_date as d
@@ -80,11 +81,22 @@ joined as (
             and c.offense_name = o.offense_name
             and c.crime_against = o.crime_against
 
-    -- Join to county-level geography (county-only grain, city = '[County Level]')
+    -- County-level geography join (preserved for backward compatibility)
+    -- geo_key resolves to the county-level row in dim_geography
     left join dim_geo as g
         on
             lower(trim(split_part(c.county_name, ',', 1))) = lower(trim(g.county_name))
             and g.city_name = '[County Level]'
+
+    -- City-level geography join (Phase 1.2)
+    -- city_geo_key resolves to the city-level row when city_name is known
+    -- and is a real city (not '[County Level]', not NULL).
+    left join dim_geo as city_g
+        on
+            lower(trim(split_part(c.county_name, ',', 1))) = lower(trim(city_g.county_name))
+            and lower(trim(c.city_name)) = lower(trim(city_g.city_name))
+            and city_g.city_name != '[County Level]'
+            and c.city_name is not null
 )
 
 select
@@ -97,7 +109,8 @@ select
 
     -- Foreign keys to dimensions
     date_key,
-    geo_key,
+    geo_key,          -- county-level geography key (always populated)
+    city_geo_key,     -- city-level geography key (NULL if city unknown)
     offense_key,
     agency_key,
 

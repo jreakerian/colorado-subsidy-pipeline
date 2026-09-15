@@ -8,7 +8,7 @@ with all_values as (
         income_tier as value_field,
         count(*) as n_records
 
-    from COLORADO_CRIME_DB_DEV.silver.income_tier
+    from COLORADO_CRIME_DB_PROD.silver.income_tier
     group by income_tier
 
 )

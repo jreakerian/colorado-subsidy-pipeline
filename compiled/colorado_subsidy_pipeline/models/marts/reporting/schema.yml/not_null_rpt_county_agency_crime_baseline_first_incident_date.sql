@@ -5,7 +5,7 @@
 
 
 select first_incident_date
-from COLORADO_CRIME_DB_DEV.gold.rpt_county_agency_crime_baseline
+from COLORADO_CRIME_DB_PROD.gold.rpt_county_agency_crime_baseline
 where first_incident_date is null
 
 

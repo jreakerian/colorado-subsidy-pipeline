@@ -8,7 +8,7 @@ with all_values as (
         state as value_field,
         count(*) as n_records
 
-    from COLORADO_CRIME_DB_DEV.gold.dim_geography
+    from COLORADO_CRIME_DB_PROD.gold.dim_geography
     group by state
 
 )

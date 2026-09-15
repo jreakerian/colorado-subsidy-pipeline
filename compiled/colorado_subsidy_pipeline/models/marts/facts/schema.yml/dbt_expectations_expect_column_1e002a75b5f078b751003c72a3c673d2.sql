@@ -16,7 +16,7 @@
  as expression
 
 
-    from COLORADO_CRIME_DB_DEV.gold.fct_income_population
+    from COLORADO_CRIME_DB_PROD.gold.fct_income_population
     
 
 ),

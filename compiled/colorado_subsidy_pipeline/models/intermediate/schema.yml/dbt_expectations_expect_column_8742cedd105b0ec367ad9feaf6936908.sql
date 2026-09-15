@@ -16,7 +16,7 @@
  as expression
 
 
-    from COLORADO_CRIME_DB_DEV.silver.population_crime_per_capita_tier
+    from COLORADO_CRIME_DB_PROD.silver.population_crime_per_capita_tier
     
 
 ),

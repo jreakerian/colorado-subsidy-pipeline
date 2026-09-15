@@ -16,7 +16,7 @@
  as expression
 
 
-    from COLORADO_CRIME_DB_DEV.silver.int_crimes_unified
+    from COLORADO_CRIME_DB_PROD.silver.int_crimes_unified
     
 
 ),

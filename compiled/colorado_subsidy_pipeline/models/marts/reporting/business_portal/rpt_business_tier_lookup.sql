@@ -3,7 +3,7 @@
 -- The front-facing business tier search tool for the B.A.S.E. program.
 -- Businesses search by entity_id or entity_name to retrieve their assigned tier.
 with tiers as (
-    select * from COLORADO_CRIME_DB_DEV.gold.fct_business_subsidy_tiers
+    select * from COLORADO_CRIME_DB_PROD.gold.fct_business_subsidy_tiers
 )
 
 select

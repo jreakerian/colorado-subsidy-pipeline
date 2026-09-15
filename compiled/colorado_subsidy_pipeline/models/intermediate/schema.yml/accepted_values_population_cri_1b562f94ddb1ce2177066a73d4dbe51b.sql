@@ -8,7 +8,7 @@ with all_values as (
         crime_per_capita_tier as value_field,
         count(*) as n_records
 
-    from COLORADO_CRIME_DB_DEV.silver.population_crime_per_capita_tier
+    from COLORADO_CRIME_DB_PROD.silver.population_crime_per_capita_tier
     group by crime_per_capita_tier
 
 )

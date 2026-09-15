@@ -11,18 +11,18 @@
 */
 
 with businesses as (
-    select * from COLORADO_CRIME_DB_DEV.gold.dim_business
+    select * from COLORADO_CRIME_DB_PROD.gold.dim_business
 ),
 
 county_tiers as (
-    select * from COLORADO_CRIME_DB_DEV.silver.final_county_tier_rank
+    select * from COLORADO_CRIME_DB_PROD.silver.final_county_tier_rank
 ),
 
 dim_geo as (
     select
         geo_key,
         county_name
-    from COLORADO_CRIME_DB_DEV.gold.dim_geography
+    from COLORADO_CRIME_DB_PROD.gold.dim_geography
     where city_name = '[County Level]'
 ),
 

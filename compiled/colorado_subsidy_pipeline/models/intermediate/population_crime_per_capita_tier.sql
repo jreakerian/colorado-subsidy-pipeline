@@ -1,7 +1,7 @@
 
 
 with crimes as (
-    select * from COLORADO_CRIME_DB_DEV.silver.int_crimes_unified
+    select * from COLORADO_CRIME_DB_PROD.silver.int_crimes_unified
 ),
 
 population as (
@@ -10,7 +10,7 @@ population as (
         county,
         year,
         total_population
-    from COLORADO_CRIME_DB_DEV.silver.int_income_population_unified
+    from COLORADO_CRIME_DB_PROD.silver.int_income_population_unified
     where
         total_population is not null
         and total_population > 0

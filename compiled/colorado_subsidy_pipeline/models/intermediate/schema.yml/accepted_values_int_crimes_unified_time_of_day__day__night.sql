@@ -8,7 +8,7 @@ with all_values as (
         time_of_day as value_field,
         count(*) as n_records
 
-    from COLORADO_CRIME_DB_DEV.silver.int_crimes_unified
+    from COLORADO_CRIME_DB_PROD.silver.int_crimes_unified
     group by time_of_day
 
 )

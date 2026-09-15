@@ -1,14 +1,14 @@
 
 
 with unified as (
-    select * from COLORADO_CRIME_DB_DEV.silver.int_income_population_unified
+    select * from COLORADO_CRIME_DB_PROD.silver.int_income_population_unified
 ),
 
 dim_geo as (
     select
         geo_key,
         county_name
-    from COLORADO_CRIME_DB_DEV.gold.dim_geography
+    from COLORADO_CRIME_DB_PROD.gold.dim_geography
     where city_name = '[County Level]'
 )
 
