@@ -4,11 +4,16 @@ Business Assistance for Security Enhancements — public lookup + OEDIT admin vi
 
 Data source: COLORADO_CRIME_DB_PROD.GOLD.RPT_BUSINESS_TIER_LOOKUP
 All data access goes through Snowpark (session.table / DataFrame API).
+
+Authentication: RSA key-pair (bypasses MFA for service accounts).
+  - Local:  reads private_key_file path from [connections.snowflake] in secrets.toml
+  - Cloud:  reads private_key PEM string from Streamlit Cloud Secrets Manager
 """
 
-import os
-
 import streamlit as st
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col, count, lit, upper
 from snowflake.snowpark.types import StringType
 
@@ -47,10 +52,65 @@ st.set_page_config(
     layout="wide",
 )
 
-# Streamlit in Snowflake (Workspace container runtime) supplies the Snowflake
-# identity through st.connection; .session() hands back a Snowpark Session.
-conn = st.connection("snowflake", ttl=os.getenv("SNOWFLAKE_CONNECTION_TTL"))
-session = conn.session()
+
+# ---------------------------------------------------------------------------
+# RSA Key-Pair Connection (bypasses MFA for service accounts)
+# ---------------------------------------------------------------------------
+
+
+@st.cache_resource
+def _get_session() -> Session:
+    """
+    Build a Snowpark Session using RSA key-pair authentication.
+
+    Supports two modes automatically:
+      1. Streamlit Cloud: secrets contain `private_key` (PEM string)
+      2. Local dev:       secrets contain `private_key_file` (path to .pem)
+    """
+    sf = st.secrets["connections"]["snowflake"]
+
+    # --- Resolve the private key bytes ---
+    if "private_key" in sf:
+        # Cloud mode: PEM string stored directly in Streamlit Secrets Manager
+        pem_bytes = sf["private_key"].encode("utf-8")
+    elif "private_key_file" in sf:
+        # Local mode: path to .pem file on disk
+        with open(sf["private_key_file"], "rb") as f:
+            pem_bytes = f.read()
+    else:
+        raise ValueError(
+            "Snowflake RSA auth requires either `private_key` (PEM string) or "
+            "`private_key_file` (path) in [connections.snowflake] secrets."
+        )
+
+    passphrase = sf.get("private_key_passphrase")
+    passphrase_bytes = passphrase.encode("utf-8") if passphrase else None
+
+    private_key_obj = serialization.load_pem_private_key(
+        pem_bytes,
+        password=passphrase_bytes,
+        backend=default_backend(),
+    )
+    pkcs8_der = private_key_obj.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    connection_params = {
+        "account": sf["account"],
+        "user": sf["user"],
+        "private_key": pkcs8_der,
+        "role": sf.get("role"),
+        "warehouse": sf.get("warehouse"),
+        "database": sf.get("database"),
+        "schema": sf.get("schema"),
+    }
+
+    return Session.builder.configs(connection_params).create()
+
+
+session = _get_session()
 
 
 # ---------------------------------------------------------------------------

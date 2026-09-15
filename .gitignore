@@ -4,6 +4,8 @@
 .DS_Store
 # Streamlit secrets — NEVER commit these (contain passwords/keys)
 **/.streamlit/secrets.toml
+# RSA private keys — NEVER commit
+.keys/
 airflow_settings.yaml
 __pycache__/
 astro
