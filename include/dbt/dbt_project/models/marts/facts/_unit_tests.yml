@@ -2,8 +2,9 @@ unit_tests:
   - name: test_fct_business_subsidy_tiers_qualification
     description: >
       Verifies that composite tier >= 3 results in qualifies_for_subsidy = true.
-      Verifies tier < 3 results in false.
-      Verifies unranked counties (tier = 0) are filtered out completely.
+      Verifies tier < 3 results in qualifies_for_subsidy = false.
+      Verifies businesses with no county match (composite_tier = 0) are excluded
+      from the output by the WHERE composite_tier > 0 filter.
     model: fct_business_subsidy_tiers
     given:
       - input: ref('dim_business')
@@ -17,14 +18,14 @@ unit_tests:
         format: csv
         rows: |
           county,crime_rank,income_rank,population_rank,final_rank
-          Denver,4,4,4,4.0
-          Boulder,2,2,2,2.0
+          denver,4,4,4,4.0
+          boulder,2,2,2,2.0
       - input: ref('dim_geography')
         format: csv
         rows: |
           geo_key,county_name,city_name
-          geo_1,Denver,[County Level]
-          geo_2,Boulder,[County Level]
+          geo_1,denver,[County Level]
+          geo_2,boulder,[County Level]
     expect:
       format: csv
       rows: |

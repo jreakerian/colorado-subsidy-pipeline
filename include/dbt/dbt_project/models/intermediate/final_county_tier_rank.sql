@@ -36,15 +36,18 @@ population_rank as (
 
 combined as (
     select
-        coalesce(c.county, replace(i.county, ' County', ''), p.county) as county,
-        coalesce(c.crime_rank, 0) as crime_rank,
-        coalesce(i.income_rank, 0) as income_rank,
-        coalesce(p.population_rank, 0) as population_rank
+        -- All three source counties are now lowercase plain names (no ' county' suffix).
+        -- Lower + trim the coalesce output as a final safety net for the crime leg
+        -- which comes from crime_tiers.county_name (source format not guaranteed).
+        lower(trim(coalesce(c.county, i.county, p.county))) as county,
+        coalesce(c.crime_rank, 0)                           as crime_rank,
+        coalesce(i.income_rank, 0)                          as income_rank,
+        coalesce(p.population_rank, 0)                      as population_rank
     from crime_rank as c
     full outer join income_rank as i
-        on lower(c.county) = replace(lower(i.county), ' county', '')
+        on lower(trim(c.county)) = lower(trim(i.county))
     full outer join population_rank as p
-        on coalesce(lower(c.county), replace(lower(i.county), ' county', '')) = lower(p.county)
+        on coalesce(lower(trim(c.county)), lower(trim(i.county))) = lower(trim(p.county))
 ),
 
 final as (
