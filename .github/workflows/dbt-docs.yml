@@ -8,89 +8,60 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 2 * * *'  # Run nightly at 2 AM
+    - cron: '0 2 * * *'  # Run nightly at 2 AM UTC
   workflow_dispatch:
 
 permissions:
-  id-token: write   # required to mint the GitHub OIDC token
-  contents: write
+  id-token: write   # Required to mint the GitHub OIDC token for Snowflake WIF
+  contents: write   # Required for peaceiris/actions-gh-pages to push to gh-pages branch
 
 jobs:
   deploy-docs:
-    # Only run if the CD pipeline succeeded, OR if manually triggered/scheduled
+    # Only run if CD succeeded — OR if manually/schedule triggered (not a workflow_run event)
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: prod
+
     env:
-      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT  }}
-      SNOWFLAKE_USER: DBT_CD_SVC
-      CI_DATABASE: COLORADO_CRIME_DB_PROD
-      CI_SCHEMA: PUBLIC
-      CI_WAREHOUSE: TRANSFORMING_WH_PROD
-      CI_ROLE: CICD_ROLE
+      SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT_PROD }}
+      SNOWFLAKE_USER: CD_SVC
+      SNOWFLAKE_ROLE: CICD_ROLE
+      SNOWFLAKE_WAREHOUSE: TRANSFORMING_WH_PROD
+      SNOWFLAKE_DATABASE: COLORADO_CRIME_DB_PROD
+      SNOWFLAKE_SCHEMA: PUBLIC
+      DBT_PROJECT_DIR: include/dbt/dbt_project
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      # ── Export absolute dbt project path ─────────────────────────────────────
+      # Needed so all subsequent steps can reference the project directory
+      # without ambiguity regardless of which working-directory they use.
+      - name: Set absolute dbt project path
+        run: echo "DBT_PROJECT_DIR_ABS=${GITHUB_WORKSPACE}/${DBT_PROJECT_DIR}" >> "$GITHUB_ENV"
+
+      # ── Auth + Python + dbt install (reusable composite action) ──────────────
+      # Handles: OIDC token fetch → Python 3.11 setup (with pip cache) →
+      # pip install dbt-snowflake (pinned) → ephemeral profiles.yml → dbt deps.
+      # Identical to what dbt-ci.yml and dbt-cd.yml use — no duplication.
+      - name: Set up dbt + Snowflake OIDC auth
+        uses: ./.github/actions/dbt-snowflake-setup
         with:
-          python-version: '3.11'
+          snowflake-account: ${{ env.SNOWFLAKE_ACCOUNT }}
+          snowflake-user: ${{ env.SNOWFLAKE_USER }}
+          snowflake-role: ${{ env.SNOWFLAKE_ROLE }}
+          snowflake-warehouse: ${{ env.SNOWFLAKE_WAREHOUSE }}
+          snowflake-database: ${{ env.SNOWFLAKE_DATABASE }}
+          snowflake-schema: ${{ env.SNOWFLAKE_SCHEMA }}
+          dbt-target: prod
+          dbt-project-dir: ${{ env.DBT_PROJECT_DIR }}
 
-      - name: Install dbt
-        run: pip install dbt-snowflake
-
-      - name: Fetch GitHub OIDC Token
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const token = await core.getIDToken('snowflakecomputing.com');
-            core.exportVariable('SNOWFLAKE_OIDC_TOKEN', token);
-            core.setSecret(token);
-
-      - name: Generate ephemeral profiles.yml
-        run: |
-          mkdir -p $HOME/.dbt
-          echo "RUNNER_HOME=$HOME" >> $GITHUB_ENV
-          python3 -c "
-          import os, textwrap
-          profile = textwrap.dedent('''
-          dbt_project:
-            target: prod
-            outputs:
-              prod:
-                type: snowflake
-                account: {account}
-                user: {user}
-                authenticator: WORKLOAD_IDENTITY
-                workload_identity_provider: OIDC
-                token: {token}
-                database: {database}
-                schema: {schema}
-                warehouse: {warehouse}
-                role: {role}
-                threads: 10
-                client_session_keep_alive: false
-          ''').strip().format(
-              account=os.environ['SNOWFLAKE_ACCOUNT'],
-              user=os.environ['SNOWFLAKE_USER'],
-              token=os.environ['SNOWFLAKE_OIDC_TOKEN'],
-              database=os.environ['CI_DATABASE'],
-              schema=os.environ['CI_SCHEMA'],
-              warehouse=os.environ['CI_WAREHOUSE'],
-              role=os.environ['CI_ROLE'],
-          )
-          path = os.path.join(os.environ['HOME'], '.dbt', 'profiles.yml')
-          open(path, 'w').write(profile)
-          print('Wrote ephemeral profiles.yml to', path)
-          "
-
-      - name: dbt dependencies
-        working-directory: ./include/dbt/dbt_project
-        run: dbt deps
-
+      # ── Download CD state artifact (Fast Docs) ────────────────────────────────
+      # When triggered via workflow_run, the CD manifest is immediately available
+      # via its run ID. We pass it to `dbt docs generate --state` to skip the
+      # expensive recompile step (catalog query only). Falls back gracefully.
       - name: Download CD state artifact (Fast Docs)
-        # Only attempt to download if triggered by a workflow run
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -100,19 +71,27 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Docs
-        working-directory: ./include/dbt/dbt_project
+      # ── Generate docs ─────────────────────────────────────────────────────────
+      # If the CD state was downloaded, pass --state to skip recompilation.
+      # On schedule/manual triggers where no state is available, compile from scratch.
+      - name: Generate dbt Docs
         run: |
-          if [ -d "state" ]; then
-            echo "State found, generating docs without recompiling"
-            dbt docs generate --profiles-dir $HOME/.dbt --state ./state
+          if [ -f "${DBT_PROJECT_DIR_ABS}/state/manifest.json" ]; then
+            echo "State found — generating docs without recompiling (catalog query only)"
+            dbt docs generate \
+              --profiles-dir "$HOME/.dbt" \
+              --project-dir "${DBT_PROJECT_DIR_ABS}" \
+              --state "${DBT_PROJECT_DIR_ABS}/state"
           else
-            echo "No state found, generating docs from scratch"
-            dbt docs generate --profiles-dir $HOME/.dbt
+            echo "No state found — generating docs from scratch (full compile + catalog)"
+            dbt docs generate \
+              --profiles-dir "$HOME/.dbt" \
+              --project-dir "${DBT_PROJECT_DIR_ABS}"
           fi
 
+      # ── Deploy to GitHub Pages ────────────────────────────────────────────────
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./include/dbt/dbt_project/target
+          publish_dir: ${{ env.DBT_PROJECT_DIR }}/target
