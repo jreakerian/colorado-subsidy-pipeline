@@ -2,6 +2,8 @@
 *.env
 *.p8
 .DS_Store
+# Streamlit secrets — NEVER commit these (contain passwords/keys)
+**/.streamlit/secrets.toml
 airflow_settings.yaml
 __pycache__/
 astro
