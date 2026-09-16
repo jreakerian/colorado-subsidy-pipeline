@@ -58,7 +58,7 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 
 
-@st.cache_resource
+@st.cache_resource(ttl=3300)  # 55 min — recreate before Snowflake's JWT expires
 def _get_session() -> Session:
     """
     Build a Snowpark Session using RSA key-pair authentication.
@@ -105,6 +105,7 @@ def _get_session() -> Session:
         "warehouse": sf.get("warehouse"),
         "database": sf.get("database"),
         "schema": sf.get("schema"),
+        "client_session_keep_alive": True,  # heartbeat during active use
     }
 
     return Session.builder.configs(connection_params).create()
