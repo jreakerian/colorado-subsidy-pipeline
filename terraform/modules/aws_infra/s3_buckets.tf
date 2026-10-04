@@ -18,6 +18,7 @@ resource "aws_s3_bucket_versioning" "general_purpose" {
   }
 }
 
+
 # Server-side encryption
 resource "aws_s3_bucket_server_side_encryption_configuration" "general_purpose" {
   bucket = aws_s3_bucket.general_purpose.id

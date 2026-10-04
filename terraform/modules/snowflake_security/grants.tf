@@ -64,3 +64,22 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_raw_csv" {
 resource "terraform_data" "stage_exists_guard" {
   input = var.stage_dependency_placeholder
 }
+
+# ── TABLE OWNERSHIP GRANTS ───────────────────────────────────────────────────────
+resource "snowflake_grant_ownership" "fct_business_subsidy_tiers" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    object_type = "TABLE"
+    object_name = "\"${var.db_name}\".\"${var.gold_schema_name}\".\"FCT_BUSINESS_SUBSIDY_TIERS\""
+  }
+  outbound_privileges = "COPY"
+}
+
+resource "snowflake_grant_ownership" "rpt_business_tier_lookup" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    object_type = "TABLE"
+    object_name = "\"${var.db_name}\".\"${var.gold_schema_name}\".\"RPT_BUSINESS_TIER_LOOKUP\""
+  }
+  outbound_privileges = "COPY"
+}
