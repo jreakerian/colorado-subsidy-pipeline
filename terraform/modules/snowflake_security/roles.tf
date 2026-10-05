@@ -59,6 +59,12 @@ resource "snowflake_grant_account_role" "cicd_to_sysadmin" {
   parent_role_name = "SYSADMIN"
 }
 
+# Grant SNOWFLAKE.CORTEX_USER to ANALYST_ROLE
+resource "snowflake_grant_database_role" "cortex_user_to_analyst" {
+  database_role_name = "\"SNOWFLAKE\".\"CORTEX_USER\""
+  parent_role_name   = snowflake_account_role.analyst_role.name
+}
+
 # Grant CREATE DATABASE to TRANSFORMER_ROLE at the account level.
 resource "snowflake_grant_privileges_to_account_role" "transformer_create_db" {
   account_role_name = snowflake_account_role.transformer_role.name
