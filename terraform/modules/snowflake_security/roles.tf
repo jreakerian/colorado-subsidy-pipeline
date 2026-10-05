@@ -182,9 +182,34 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_gold" {
 # ── FUTURE TABLE GRANTS ───────────────────────────────────────────────────────────
 resource "snowflake_grant_privileges_to_account_role" "loader_future_tables_raw" {
   account_role_name = snowflake_account_role.loader_role.name
-  privileges        = ["SELECT"]
+  privileges        = ["SELECT", "INSERT"]
   on_schema_object {
     future {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${var.db_name}\".\"${var.raw_schema_name}\""
+    }
+  }
+  depends_on = [snowflake_grant_privileges_to_account_role.loader_raw]
+}
+
+# LOADER_ROLE needs CREATE TABLE in RAW so COPY INTO can create the landing table
+# and INSERT so it can write rows into it on each pipeline run.
+resource "snowflake_grant_privileges_to_account_role" "loader_raw_ddl" {
+  account_role_name = snowflake_account_role.loader_role.name
+  privileges        = ["CREATE TABLE"]
+  on_schema {
+    schema_name = "\"${var.db_name}\".\"${var.raw_schema_name}\""
+  }
+  depends_on = [snowflake_grant_privileges_to_account_role.loader_raw]
+}
+
+# Grant SELECT + INSERT on ALL EXISTING tables in RAW so the loader can
+# read/write tables that were created before Terraform ran the future grants.
+resource "snowflake_grant_privileges_to_account_role" "loader_all_tables_raw" {
+  account_role_name = snowflake_account_role.loader_role.name
+  privileges        = ["SELECT", "INSERT"]
+  on_schema_object {
+    all {
       object_type_plural = "TABLES"
       in_schema          = "\"${var.db_name}\".\"${var.raw_schema_name}\""
     }
