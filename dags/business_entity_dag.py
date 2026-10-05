@@ -5,8 +5,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-# ── Airflow ───────────────────────────────────────────────────────────────────
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 
 # ── Cosmos (dbt) ──────────────────────────────────────────────────────────────
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig
@@ -16,25 +15,16 @@ from cosmos.profiles import SnowflakeUserPasswordProfileMapping
 from include.eakerian.business_entity_helpers import on_dag_failure
 
 SNOWFLAKE_CONN_ID = "snowflake_default"
-RAW_TABLE  = os.environ.get(
-    "PIPELINE_RAW_TABLE",
-    "RAW.colorado_business_entities_raw"
-)
+RAW_TABLE = os.environ.get("PIPELINE_RAW_TABLE", "RAW.colorado_business_entities_raw")
 
-PROD_TABLE = os.environ.get(
-    "PIPELINE_PROD_TABLE",
-    "RAW.colorado_business_entities"
-)
+PROD_TABLE = os.environ.get("PIPELINE_PROD_TABLE", "RAW.colorado_business_entities")
 
-SCHEMA = os.environ.get(
-    "PIPELINE_SCHEMA",
-    "RAW"
-)
+SCHEMA = os.environ.get("PIPELINE_SCHEMA", "RAW")
 
 DBT_TARGET = os.environ.get("PIPELINE_DBT_TARGET", "dev")
 
 _AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME", "/usr/local/airflow")
-_SQL_DIR      = Path(_AIRFLOW_HOME) / "include" / "sql"
+_SQL_DIR = Path(_AIRFLOW_HOME) / "include" / "sql"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Retry configuration
@@ -87,8 +77,7 @@ def on_task_failure(context: dict) -> None:
     ti = context.get("task_instance")
     if ti:
         context["task_failure_details"] = (
-            f"Task '{ti.task_id}' failed in DAG '{ti.dag_id}' "
-            f"(run_id: {ti.run_id})"
+            f"Task '{ti.task_id}' failed in DAG '{ti.dag_id}' (run_id: {ti.run_id})"
         )
     on_dag_failure(context)
 
@@ -106,7 +95,7 @@ def on_task_failure(context: dict) -> None:
     ),
     default_args={
         "owner": "eakerian",
-        "on_failure_callback": on_task_failure,   # task-level alert with task_id
+        "on_failure_callback": on_task_failure,  # task-level alert with task_id
         "execution_timeout": timedelta(hours=1),
         **_DEFAULT_RETRY_ARGS,
     },
@@ -118,7 +107,6 @@ def on_task_failure(context: dict) -> None:
     on_failure_callback=on_dag_failure,  # DAG-run-level alert
 )
 def business_entity_dag():
-
     # ── Task 1: Fetch from API → land raw strings into bronze ─────────────
     @task(
         task_id="fetch_and_land_raw",
@@ -182,7 +170,6 @@ def business_entity_dag():
     @task(task_id="merge_new_to_production")
     def merge_new_to_production(yesterday: str) -> None:
         """Idempotently write net-new entityids from bronze into production."""
-
 
         from include.eakerian.business_entity_helpers import execute_sf_query
 
