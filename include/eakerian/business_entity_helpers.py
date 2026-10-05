@@ -12,12 +12,12 @@ This project uses dbt + Snowflake.  The Airflow DAG (business_entity_dag_v2.py)
 is the *ingestion* layer; dbt is the *transformation* layer.
 
 Landing strategy (bronze-first):
-  1. API → colorado_business_entities_raw   (RAW_DEV schema — permanent, append-only)
+  1. API → colorado_business_entities_raw   (RAW schema — permanent, append-only)
   2. raw → staging table (date-suffixed)    (transformation & enrichment)
   3. staging → production table             (clean, deduplicated, county-enriched)
 
 The raw table sits in the same Snowflake database/schema that dbt's
-source('bronze', ...) already points to (SNOWFLAKE_CATALOG / RAW_DEV).
+source('bronze', ...) already points to (SNOWFLAKE_CATALOG / RAW).
 
 NOTE FOR dbt MAINTAINERS
 -------------------------
@@ -179,8 +179,8 @@ def _raw_record_to_tuple(record: dict, source_date: str) -> tuple:
         record.get("jurisdictonofformation"),
         record.get("entitytype"),
         record.get("entityformdate"),
-        datetime.now(timezone.utc),              # _ingested_at: pipeline audit timestamp
-        source_date,                    # _source_date: logical execution date (YYYY-MM-DD)
+        datetime.now(timezone.utc),  # _ingested_at: pipeline audit timestamp
+        source_date,  # _source_date: logical execution date (YYYY-MM-DD)
     )
 
 
@@ -192,6 +192,7 @@ def land_raw_records(
     raw_table: str,
     source_date: str,
     conn_id: str = "snowflake_default",
+    aws_conn_id: str = "aws_default",
 ) -> None:
     """Write raw API records into the append-only bronze landing table.
 
@@ -215,10 +216,10 @@ def land_raw_records(
         log.info("No raw records to land for %s — skipping.", source_date)
         return
 
-    import os
-
-    import boto3
     import pandas as pd
+
+    # Import inside function so this module is importable outside Airflow for testing
+    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
     # Add metadata
     ingested_at = datetime.now(timezone.utc).isoformat()
@@ -226,32 +227,48 @@ def land_raw_records(
         r["_ingested_at"] = ingested_at
         r["_source_date"] = source_date
 
-    # Write to Parquet
+    # Write to Parquet locally
     df = pd.DataFrame(raw_records)
     parquet_file = f"/tmp/business_entities_{source_date}.parquet"
     df.to_parquet(parquet_file, index=False)
 
-    # Upload to S3
-    s3_bucket = os.getenv("S3_BUCKET_NAME", "colorado-subsidy-lakehouse")
+    # Bucket must match what the Snowflake external stage points to.
+    # (terraform: snowflake_foundation/stages.tf → RAW_CSV_STAGE → general_purpose_bucket)
+    import os
+
+    s3_bucket = os.environ.get("AWS_S3_BUCKET", "colorado-subsidy-pipeline-data-dev")
     s3_key = f"raw/colorado_business_entities/source_date={source_date}/data.parquet"
-    s3_client = boto3.client("s3")
-    s3_client.upload_file(parquet_file, s3_bucket, s3_key)
+    s3_hook = S3Hook(aws_conn_id=aws_conn_id)
+    s3_hook.load_file(
+        filename=parquet_file,
+        key=s3_key,
+        bucket_name=s3_bucket,
+        replace=True,
+    )
     log.info("Uploaded to S3: s3://%s/%s", s3_bucket, s3_key)
 
-    # COPY INTO Snowflake
+    # COPY INTO Snowflake using the Terraform-provisioned external stage.
+    # Stage defined in: terraform/modules/snowflake_foundation/stages.tf
+    #
+    # We use a schema-qualified (relative) stage path rather than a
+    # fully-qualified one. The SnowflakeHook already sets the session
+    # database context from AIRFLOW_CONN_SNOWFLAKE_DEFAULT, so Snowflake
+    # resolves "RAW"."RAW_CSV_STAGE" against the correct database
+    # automatically. This keeps the database as a single source of truth
+    # in the Airflow connection — not duplicated in env vars.
     copy_sql = f"""
         COPY INTO {raw_table}
-        FROM @my_ext_stage/{s3_key}
+        FROM @"RAW"."RAW_CSV_STAGE"/{s3_key}
         FILE_FORMAT = (TYPE = PARQUET)
         MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
     """
     execute_sf_query(copy_sql, conn_id=conn_id)
     log.info(
         "Landed %d raw records into %s (source_date=%s) via COPY INTO",
-        len(raw_records), raw_table, source_date,
+        len(raw_records),
+        raw_table,
+        source_date,
     )
-
-
 
 
 # ── Failure alerting ───────────────────────────────────────────────────────────

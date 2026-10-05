@@ -182,7 +182,10 @@ resource "snowflake_grant_privileges_to_account_role" "transformer_gold" {
 # ── FUTURE TABLE GRANTS ───────────────────────────────────────────────────────────
 resource "snowflake_grant_privileges_to_account_role" "loader_future_tables_raw" {
   account_role_name = snowflake_account_role.loader_role.name
-  privileges        = ["SELECT", "INSERT"]
+  # INSERT  — needed by COPY INTO to write rows
+  # UPDATE  — needed by MERGE (WHEN MATCHED clause) in merge_new_to_production
+  # SELECT  — needed to read back rows for validation / assert_rows_landed
+  privileges        = ["SELECT", "INSERT", "UPDATE"]
   on_schema_object {
     future {
       object_type_plural = "TABLES"
@@ -203,11 +206,11 @@ resource "snowflake_grant_privileges_to_account_role" "loader_raw_ddl" {
   depends_on = [snowflake_grant_privileges_to_account_role.loader_raw]
 }
 
-# Grant SELECT + INSERT on ALL EXISTING tables in RAW so the loader can
-# read/write tables that were created before Terraform ran the future grants.
+# Grant SELECT + INSERT + UPDATE on ALL EXISTING tables in RAW.
+# Covers tables created before these future grants were applied.
 resource "snowflake_grant_privileges_to_account_role" "loader_all_tables_raw" {
   account_role_name = snowflake_account_role.loader_role.name
-  privileges        = ["SELECT", "INSERT"]
+  privileges        = ["SELECT", "INSERT", "UPDATE"]
   on_schema_object {
     all {
       object_type_plural = "TABLES"
