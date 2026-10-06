@@ -1,0 +1,603 @@
+# Colorado B.A.S.E. Program — Cortex Analyst Semantic Model
+#
+# This file defines the semantic layer that grounds Snowflake Cortex Analyst
+# in governed, pre-aggregated reporting marts. Stored in:
+#   @COLORADO_CRIME_DB_PROD.GOLD.BASE_CORTEX_STAGE/cortex_semantic_model.yaml
+#
+# Covers:
+#   - City-level crime patterns (seasonal, day-of-week)
+#   - City-level crime demographics and offense types
+#   - County-level police agency crime baselines and 5% reduction targets
+#   - Business subsidy tier assignments (B.A.S.E. program)
+#
+# NOTE: County names are stored LOWERCASE in the source tables.
+# All column references use UPPERCASE (Snowflake default).
+
+name: colorado_base_program_model
+description: >
+  Colorado B.A.S.E. (Business Assistance for Security Enhancements) program
+  semantic model. Covers 23 years of crime incidents, agency crime reduction
+  targets, business subsidy tier assignments, and city-level crime patterns
+  across all 64 Colorado counties.
+
+tables:
+
+  # ── Table 1: City Crime Patterns (Seasonal + Day-of-Week) ─────────────────
+  - name: city_crime_patterns
+    description: >
+      Seasonal and weekly crime patterns by city. One row per city × month ×
+      day_of_week combination. Use this table for questions about crime trends
+      over time, which season has the most crime, which day of week is most
+      dangerous, or how a specific city compares across months.
+    base_table:
+      database: COLORADO_CRIME_DB_PROD
+      schema: GOLD
+      table: RPT_CITY_TIME_TRENDS
+    dimensions:
+      - name: city_name
+        synonyms: ["city", "municipality", "town", "location"]
+        description: "Name of the Colorado city where crimes occurred"
+        expr: CITY_NAME
+        data_type: TEXT
+        sample_values:
+          - Denver
+          - Colorado Springs
+          - Aurora
+          - Fort Collins
+          - Lakewood
+          - Pueblo
+          - Thornton
+          - Arvada
+      - name: county_name
+        synonyms: ["county", "region", "area"]
+        description: "Colorado county that contains the city"
+        expr: COUNTY_NAME
+        data_type: TEXT
+        sample_values:
+          - denver
+          - el paso
+          - arapahoe
+          - jefferson
+          - larimer
+          - adams
+          - boulder
+          - weld
+      - name: month_name
+        synonyms: ["month", "calendar month"]
+        description: "Calendar month name (January through December)"
+        expr: MONTH_NAME
+        data_type: TEXT
+        sample_values:
+          - January
+          - February
+          - March
+          - April
+          - May
+          - June
+          - July
+          - August
+          - September
+          - October
+          - November
+          - December
+      - name: season
+        synonyms: ["time of year", "quarter season"]
+        description: "Season derived from month: winter, spring, summer, or fall"
+        expr: SEASON
+        data_type: TEXT
+        sample_values:
+          - winter
+          - spring
+          - summer
+          - fall
+      - name: day_name
+        synonyms: ["day", "day of week", "weekday"]
+        description: "Day of week from Sunday (day 1) to Saturday (day 7)"
+        expr: DAY_NAME
+        data_type: TEXT
+        sample_values:
+          - Sunday
+          - Monday
+          - Tuesday
+          - Wednesday
+          - Thursday
+          - Friday
+          - Saturday
+    measures:
+      - name: total_crimes
+        synonyms:
+          - "crime count"
+          - "number of crimes"
+          - "incidents"
+          - "crimes"
+          - "crime incidents"
+        description: >
+          Total crime incidents for this city × month × day-of-week combination.
+          SUM across cities, months, or days gives total crimes for that grouping.
+        expr: TOTAL_CRIMES
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: avg_monthly_crimes
+        synonyms:
+          - "average monthly crimes"
+          - "typical monthly volume"
+          - "mean crimes per month"
+        description: >
+          Window average: average crimes for this city in this month across all
+          day-of-week combinations. Use AVG of this column for comparison.
+        expr: AVG_MONTHLY_CRIMES
+        data_type: NUMBER
+        default_aggregation: avg
+
+  # ── Table 2: City Crime Demographics + Offense Types ──────────────────────
+  - name: city_crime_demographics
+    description: >
+      Crime type distribution and offender demographics by city. One row per
+      city × offense_category × crime_against (Property/Person/Society).
+      Use for questions about specific crime types, the most common offenses,
+      what kinds of crimes dominate a city, or average offender age by crime type.
+    base_table:
+      database: COLORADO_CRIME_DB_PROD
+      schema: GOLD
+      table: RPT_CITY_CRIME_DEMOGRAPHICS
+    dimensions:
+      - name: city_name
+        synonyms: ["city", "municipality", "town"]
+        description: "Name of the Colorado city"
+        expr: CITY_NAME
+        data_type: TEXT
+        sample_values:
+          - Denver
+          - Colorado Springs
+          - Aurora
+          - Fort Collins
+          - Pueblo
+      - name: county_name
+        synonyms: ["county", "region"]
+        description: "Colorado county containing the city"
+        expr: COUNTY_NAME
+        data_type: TEXT
+        sample_values:
+          - denver
+          - el paso
+          - arapahoe
+          - jefferson
+          - pueblo
+      - name: offense_category_name
+        synonyms:
+          - "crime type"
+          - "offense type"
+          - "offense category"
+          - "crime category"
+          - "type of crime"
+        description: "Broad crime category name from the NIBRS/CDPS classification"
+        expr: OFFENSE_CATEGORY_NAME
+        data_type: TEXT
+        sample_values:
+          - Larceny-Theft
+          - Assault Offenses
+          - Drug/Narcotic Offenses
+          - Burglary/Breaking & Entering
+          - Vandalism/Destruction of Property
+          - Motor Vehicle Theft
+          - Fraud Offenses
+          - Robbery
+          - Sex Offenses
+      - name: crime_against
+        synonyms:
+          - "crime classification"
+          - "victim type"
+          - "crime against"
+        description: >
+          High-level classification: Property (theft/damage), Person (violence),
+          or Society (drug crimes, public order offenses)
+        expr: CRIME_AGAINST
+        data_type: TEXT
+        sample_values:
+          - Property
+          - Person
+          - Society
+    measures:
+      - name: total_crimes
+        synonyms:
+          - "crime count"
+          - "number of crimes"
+          - "incidents"
+          - "offense count"
+        description: >
+          Total crime incidents for this city × offense category × crime_against
+          combination. SUM gives total crimes for any grouping.
+        expr: TOTAL_CRIMES
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: avg_offender_age
+        synonyms:
+          - "average age"
+          - "offender age"
+          - "suspect age"
+          - "mean age"
+          - "age of offenders"
+        description: >
+          Average age of individuals involved in this offense category.
+          NOTE: Age was not recorded for approximately 47% of incidents —
+          interpret this measure with caution.
+        expr: AVG_OFFENDER_AGE
+        data_type: NUMBER
+        default_aggregation: avg
+      - name: pct_of_city_crimes
+        synonyms:
+          - "percentage"
+          - "share"
+          - "proportion"
+          - "percent of crimes"
+          - "crime share"
+        description: >
+          Percentage share of this offense category out of all crimes in the
+          city (0–100). Indicates how dominant a crime type is in a given city.
+        expr: PCT_OF_CITY_CRIMES
+        data_type: NUMBER
+        default_aggregation: avg
+
+  # ── Table 3: County Police Agency Crime Baselines ─────────────────────────
+  - name: agency_crime_baselines
+    description: >
+      Historical crime totals per police agency and their 5% reduction targets.
+      One row per county × agency. Use for questions about police agencies,
+      law enforcement, crime reduction goals, which agencies handle the most
+      crime, or statewide prevention targets.
+    base_table:
+      database: COLORADO_CRIME_DB_PROD
+      schema: GOLD
+      table: RPT_COUNTY_AGENCY_CRIME_BASELINE
+    dimensions:
+      - name: county_name
+        synonyms: ["county", "region", "jurisdiction"]
+        description: "Colorado county where the police agency operates"
+        expr: COUNTY_NAME
+        data_type: TEXT
+        sample_values:
+          - el paso
+          - denver
+          - jefferson
+          - arapahoe
+          - adams
+          - larimer
+          - boulder
+          - douglas
+      - name: agency_name
+        synonyms:
+          - "police department"
+          - "sheriff"
+          - "law enforcement agency"
+          - "agency"
+          - "department"
+          - "police"
+        description: "Name of the police or sheriff department"
+        expr: AGENCY_NAME
+        data_type: TEXT
+        sample_values:
+          - Denver Police Dept
+          - Colorado Springs Police Dept
+          - El Paso County Sheriff's Office
+          - Jefferson County Sheriff's Office
+          - Aurora Police Dept
+    time_dimensions:
+      - name: first_incident_date
+        synonyms: ["earliest date", "start of record", "beginning"]
+        description: "Date of the earliest recorded incident for this agency"
+        expr: FIRST_INCIDENT_DATE
+        data_type: DATE
+        unique: false
+      - name: last_incident_date
+        synonyms: ["most recent date", "latest date", "end of record"]
+        description: "Date of the most recent recorded incident for this agency"
+        expr: LAST_INCIDENT_DATE
+        data_type: DATE
+        unique: false
+    measures:
+      - name: total_crimes
+        synonyms:
+          - "baseline crimes"
+          - "historical crime count"
+          - "incidents"
+          - "crime volume"
+          - "crimes handled"
+        description: >
+          Total historical crime incidents for this police agency across the
+          full observation period. SUM across agencies gives county or state total.
+        expr: TOTAL_CRIMES
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: target_crimes_5pct_reduction
+        synonyms:
+          - "5 percent reduction target"
+          - "crime reduction target"
+          - "goal"
+          - "target"
+          - "reduction goal"
+          - "crimes to reach"
+        description: >
+          Target crime count representing a 5% reduction from the historical
+          baseline (= total_crimes × 0.95). SUM gives the aggregate target
+          for a county or statewide.
+        expr: TARGET_CRIMES_5PCT_REDUCTION
+        data_type: NUMBER
+        default_aggregation: sum
+
+  # ── Table 4: Business Subsidy Tiers (B.A.S.E. Program) ───────────────────
+  - name: business_subsidy_tiers
+    description: >
+      B.A.S.E. program composite subsidy tier assignments for 3.1 million
+      Colorado businesses. One row per registered business entity. Use for
+      questions about businesses, subsidy eligibility, how many businesses
+      qualify, tier distribution, which counties have the most eligible
+      businesses, or how businesses are classified.
+    base_table:
+      database: COLORADO_CRIME_DB_PROD
+      schema: GOLD
+      table: RPT_BUSINESS_TIER_LOOKUP
+    dimensions:
+      - name: entity_name
+        synonyms: ["business name", "company name", "business", "company"]
+        description: "Registered name of the Colorado business with the Secretary of State"
+        expr: ENTITY_NAME
+        data_type: TEXT
+        unique: false
+      - name: principal_city
+        synonyms: ["city", "business city", "business location city"]
+        description: "City where the business is principally registered"
+        expr: PRINCIPAL_CITY
+        data_type: TEXT
+        sample_values:
+          - Denver
+          - Colorado Springs
+          - Aurora
+          - Fort Collins
+          - Lakewood
+          - Centennial
+          - Boulder
+          - Pueblo
+      - name: principal_county
+        synonyms:
+          - "county"
+          - "business county"
+          - "business location county"
+          - "registered county"
+        description: "County where the business is principally registered"
+        expr: PRINCIPAL_COUNTY
+        data_type: TEXT
+        sample_values:
+          - DENVER
+          - EL PASO
+          - ARAPAHOE
+          - JEFFERSON
+          - ADAMS
+          - LARIMER
+          - BOULDER
+          - DOUGLAS
+      - name: entity_type
+        synonyms:
+          - "business type"
+          - "company type"
+          - "organization type"
+          - "legal structure"
+        description: "Legal entity type (LLC, Corporation, Sole Proprietor, etc.)"
+        expr: ENTITY_TYPE
+        data_type: TEXT
+        sample_values:
+          - Limited Liability Company
+          - Corporation
+          - Sole Proprietor
+          - Partnership
+          - Nonprofit Corporation
+      - name: subsidy_tier_label
+        synonyms: ["tier label", "tier name", "subsidy level name"]
+        description: "Human-readable subsidy tier label (Tier 1 Basic through Tier 4 Maximum)"
+        expr: SUBSIDY_TIER_LABEL
+        data_type: TEXT
+        sample_values:
+          - "Tier 1 — Basic Security Review"
+          - "Tier 2 — Standard Security Subsidy"
+          - "Tier 3 — Enhanced Security Subsidy"
+          - "Tier 4 — Maximum Security Subsidy"
+      - name: qualifies_for_subsidy
+        synonyms:
+          - "eligible"
+          - "qualifies"
+          - "subsidy eligible"
+          - "receives subsidy"
+          - "gets a subsidy"
+        description: "TRUE if the business qualifies for a B.A.S.E. security subsidy grant"
+        expr: QUALIFIES_FOR_SUBSIDY
+        data_type: BOOLEAN
+        sample_values:
+          - "TRUE"
+          - "FALSE"
+      - name: notification_eligible
+        synonyms:
+          - "can notify"
+          - "outreach eligible"
+          - "ready to notify"
+          - "pending notification"
+        description: "TRUE if OEDIT can send a B.A.S.E. notification to this business"
+        expr: NOTIFICATION_ELIGIBLE
+        data_type: BOOLEAN
+        sample_values:
+          - "TRUE"
+          - "FALSE"
+    measures:
+      - name: business_count
+        synonyms:
+          - "number of businesses"
+          - "count of businesses"
+          - "businesses"
+          - "how many businesses"
+          - "total businesses"
+        description: "Count of businesses matching the applied filters"
+        expr: "1"
+        data_type: NUMBER
+        default_aggregation: count
+      - name: composite_tier
+        synonyms:
+          - "tier score"
+          - "tier number"
+          - "tier level"
+          - "composite score"
+          - "subsidy tier"
+        description: >
+          Composite security subsidy tier (1=Basic $1K, 2=Standard $1.5K,
+          3=Enhanced $2K, 4=Maximum $2.5K). Weighted average of crime tier (50%),
+          income tier (30%), and population growth tier (20%).
+        expr: COMPOSITE_TIER
+        data_type: NUMBER
+        default_aggregation: avg
+
+# ── Verified Queries ────────────────────────────────────────────────────────
+# IMPORTANT: Use Cortex Analyst logical table names (__table_name), NOT
+# the physical Snowflake table names. Cortex wraps each base_table in a CTE
+# named __<table.name> before executing.
+
+verified_queries:
+
+  - name: top_crime_cities
+    question: "Which cities have the most crimes?"
+    sql: >
+      SELECT city_name, SUM(total_crimes) AS total_crimes
+      FROM __city_crime_patterns
+      GROUP BY city_name
+      ORDER BY total_crimes DESC
+      LIMIT 10
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: crime_by_season
+    question: "Which season has the most crimes statewide?"
+    sql: >
+      SELECT season, SUM(total_crimes) AS total_crimes
+      FROM __city_crime_patterns
+      GROUP BY season
+      ORDER BY total_crimes DESC
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: crime_by_day_of_week
+    question: "Which day of the week has the most crimes?"
+    sql: >
+      SELECT day_name, SUM(total_crimes) AS total_crimes
+      FROM __city_crime_patterns
+      GROUP BY day_name
+      ORDER BY total_crimes DESC
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: most_common_crime_types
+    question: "What are the most common types of crimes?"
+    sql: >
+      SELECT offense_category_name, crime_against, SUM(total_crimes) AS total_crimes
+      FROM __city_crime_demographics
+      GROUP BY offense_category_name, crime_against
+      ORDER BY total_crimes DESC
+      LIMIT 15
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: county_crime_totals
+    question: "Which county has the most crimes?"
+    sql: >
+      SELECT county_name, SUM(total_crimes) AS total_crimes
+      FROM __agency_crime_baselines
+      GROUP BY county_name
+      ORDER BY total_crimes DESC
+      LIMIT 10
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: statewide_prevention_target
+    question: "How many crimes could be prevented if every agency hits its 5% reduction target?"
+    sql: >
+      SELECT
+        SUM(total_crimes)                                      AS baseline_crimes,
+        SUM(target_crimes_5pct_reduction)                     AS target_crimes,
+        SUM(total_crimes) - SUM(target_crimes_5pct_reduction) AS crimes_to_prevent
+      FROM __agency_crime_baselines
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: qualifying_businesses_by_county
+    question: "How many businesses qualify for a subsidy in each county?"
+    sql: >
+      SELECT principal_county, COUNT(*) AS qualifying_businesses
+      FROM __business_subsidy_tiers
+      WHERE qualifies_for_subsidy = TRUE
+      GROUP BY principal_county
+      ORDER BY qualifying_businesses DESC
+      LIMIT 20
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: tier_4_businesses
+    question: "How many businesses are assigned to the highest subsidy tier?"
+    sql: >
+      SELECT COUNT(*) AS tier_4_businesses
+      FROM __business_subsidy_tiers
+      WHERE composite_tier = 4
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: weekend_vs_weekday
+    question: "Are there more crimes on weekends or weekdays?"
+    sql: >
+      SELECT
+        CASE WHEN day_name IN ('Saturday', 'Sunday') THEN 'Weekend' ELSE 'Weekday' END AS day_type,
+        SUM(total_crimes) AS total_crimes
+      FROM __city_crime_patterns
+      GROUP BY day_type
+      ORDER BY total_crimes DESC
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: top_agencies_by_crime
+    question: "Which police agencies handle the most crimes?"
+    sql: >
+      SELECT agency_name, county_name, total_crimes, target_crimes_5pct_reduction
+      FROM __agency_crime_baselines
+      ORDER BY total_crimes DESC
+      LIMIT 15
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: property_crime_cities
+    question: "Which cities have the most property crimes?"
+    sql: >
+      SELECT city_name, SUM(total_crimes) AS property_crimes
+      FROM __city_crime_demographics
+      WHERE crime_against = 'Property'
+      GROUP BY city_name
+      ORDER BY property_crimes DESC
+      LIMIT 10
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: avg_age_by_crime_type
+    question: "What is the average offender age for different crime types?"
+    sql: >
+      SELECT offense_category_name, crime_against, ROUND(AVG(avg_offender_age), 1) AS avg_age
+      FROM __city_crime_demographics
+      WHERE avg_offender_age IS NOT NULL
+      GROUP BY offense_category_name, crime_against
+      ORDER BY avg_age DESC
+      LIMIT 15
+    verified_by: data_engineer
+    verified_at: 1790956800
+
+  - name: notification_eligible_by_county
+    question: "Which counties have the most businesses ready for B.A.S.E. notification?"
+    sql: >
+      SELECT principal_county, COUNT(*) AS notification_eligible_businesses
+      FROM __business_subsidy_tiers
+      WHERE notification_eligible = TRUE
+      GROUP BY principal_county
+      ORDER BY notification_eligible_businesses DESC
+      LIMIT 20
+    verified_by: data_engineer
+    verified_at: 1790956800
