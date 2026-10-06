@@ -17,7 +17,6 @@ Features:
 """
 
 import streamlit as st
-
 from components.cortex import (
     ask_cortex_analyst,
     auto_chart,
@@ -25,7 +24,7 @@ from components.cortex import (
     parse_analyst_response,
 )
 from components.data_loaders import get_session
-from components.styles import PALETTE, inject_css
+from components.styles import inject_css
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -122,7 +121,7 @@ for msg in st.session_state["messages"]:
                     st.caption(f"↳ {len(df):,} row{'s' if len(df) != 1 else ''} returned")
 
             if msg.get("warnings"):
-                with st.expander("ℹ️ Model notes", expanded=False):
+                with st.expander("i Model notes", expanded=False):
                     for w in msg["warnings"]:
                         st.caption(w)
 
@@ -146,27 +145,33 @@ if question:
         st.markdown(question)
 
     # Append to history (display only — content string)
-    st.session_state["messages"].append({
-        "role": "user",
-        "content": question,
-    })
+    st.session_state["messages"].append(
+        {
+            "role": "user",
+            "content": question,
+        }
+    )
 
     # Build Cortex conversation history (API format)
     cortex_history: list[dict] = []
-    for m in st.session_state["messages"][:-1]:   # all but the just-added question
+    for m in st.session_state["messages"][:-1]:  # all but the just-added question
         if m["role"] == "user":
-            cortex_history.append({
-                "role": "user",
-                "content": [{"type": "text", "text": m["content"]}],
-            })
+            cortex_history.append(
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": m["content"]}],
+                }
+            )
         elif m["role"] == "analyst" and m.get("text"):
             content_blocks = [{"type": "text", "text": m["text"]}]
             if m.get("sql"):
                 content_blocks.append({"type": "sql", "statement": m["sql"]})
-            cortex_history.append({
-                "role": "analyst",
-                "content": content_blocks,
-            })
+            cortex_history.append(
+                {
+                    "role": "analyst",
+                    "content": content_blocks,
+                }
+            )
 
     # Call Cortex Analyst
     with st.chat_message("analyst", avatar="❄️"):
@@ -212,7 +217,7 @@ if question:
 
         # Warnings — tucked away, not shown inline
         if parsed["warnings"]:
-            with st.expander("ℹ️ Model notes", expanded=False):
+            with st.expander("i Model notes", expanded=False):
                 for w in parsed["warnings"]:
                     st.caption(w)
 

@@ -7,16 +7,14 @@ Act 2 of the B.A.S.E. data narrative.
  day-and-night signatures — and those patterns tell us where to deploy resources."
 
 Shows WHEN crime happens, at county and city grain:
-  - County KPI 6: Seasonal crime heatmap (month × county)
+  - County KPI 6: Seasonal crime heatmap (month x county)
   - City KPI 6:   Day-of-week crime area chart (city selector)
   - City KPI 2+4: Day vs Night top-3 crime categories (lollipop)
   - City KPI 3:   Average offender age by crime type (dot plot)
 """
 
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
 from components.data_loaders import (
     get_session,
     load_city_crime_demographics,
@@ -24,7 +22,7 @@ from components.data_loaders import (
     load_city_time_trends,
     load_county_monthly_crimes,
 )
-from components.styles import PALETTE, inject_css, act_header
+from components.styles import PALETTE, act_header, inject_css
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -47,10 +45,10 @@ act_header(
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 with st.spinner("Querying Snowflake…"):
-    df_monthly  = load_county_monthly_crimes(session)
-    df_trends   = load_city_time_trends(session)
-    df_tod      = load_city_time_of_day_crimes(session)
-    df_demo     = load_city_crime_demographics(session)
+    df_monthly = load_county_monthly_crimes(session)
+    df_trends = load_city_time_trends(session)
+    df_tod = load_city_time_of_day_crimes(session)
+    df_demo = load_city_crime_demographics(session)
 
 # ── City selector (drives charts 2, 3, 4) ─────────────────────────────────────
 available_cities = sorted(df_trends["CITY_NAME"].dropna().unique())
@@ -65,29 +63,39 @@ selected_city = st.selectbox(
 
 st.divider()
 
-# ── Chart 1: Seasonal heatmap — county × month ────────────────────────────────
+# ── Chart 1: Seasonal heatmap — county x month ────────────────────────────────
 st.subheader("County KPI 6 — Seasonal Crime Heatmap (All Counties)")
 st.caption(
-    "Each row is a county; each column is a month (Jan–Dec). "
+    "Each row is a county; each column is a month (Jan-Dec). "
     "Darker orange = more crimes. Scroll vertically to see all 64 counties."
 )
 
-# Aggregate across all years: sum total_crimes per county × month
+# Aggregate across all years: sum total_crimes per county x month
 df_heat = (
-    df_monthly
-    .groupby(["COUNTY_NAME", "MONTH", "MONTH_NAME"], as_index=False)["TOTAL_CRIMES"]
+    df_monthly.groupby(["COUNTY_NAME", "MONTH", "MONTH_NAME"], as_index=False)["TOTAL_CRIMES"]
     .sum()
     .sort_values(["COUNTY_NAME", "MONTH"])
 )
 
 # Pivot to wide: counties as rows, months as columns
 MONTH_ORDER = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ]
 df_heat_pivot = (
-    df_heat
-    .pivot_table(index="COUNTY_NAME", columns="MONTH_NAME", values="TOTAL_CRIMES", aggfunc="sum")
+    df_heat.pivot_table(
+        index="COUNTY_NAME", columns="MONTH_NAME", values="TOTAL_CRIMES", aggfunc="sum"
+    )
     .fillna(0)
     .reindex(columns=MONTH_ORDER, fill_value=0)
     .sort_index()  # alphabetical counties
@@ -163,12 +171,9 @@ with col_left:
 # ── Chart 3: Day vs Night lollipop ────────────────────────────────────────────
 with col_right:
     st.subheader(f"City KPI 2 & 4 — Day vs Night Crime: {selected_city}")
-    st.caption("Top 3 crime categories during daytime (6AM–6PM) vs nighttime (6PM–6AM).")
+    st.caption("Top 3 crime categories during daytime (6AM-6PM) vs nighttime (6PM-6AM).")
 
-    df_tod_city = (
-        df_tod[df_tod["CITY_NAME"] == selected_city]
-        .sort_values(["TIME_OF_DAY", "RNK"])
-    )
+    df_tod_city = df_tod[df_tod["CITY_NAME"] == selected_city].sort_values(["TIME_OF_DAY", "RNK"])
 
     if df_tod_city.empty:
         st.info(f"No time-of-day data for {selected_city}.")
@@ -184,7 +189,8 @@ with col_right:
             for _, row in group.iterrows():
                 fig_lollipop.add_shape(
                     type="line",
-                    x0=0, x1=row["CRIME_COUNT"],
+                    x0=0,
+                    x1=row["CRIME_COUNT"],
                     y0=f"{tod_val}-{row['OFFENSE_CATEGORY_NAME']}",
                     y1=f"{tod_val}-{row['OFFENSE_CATEGORY_NAME']}",
                     line=dict(color=color, width=2),
@@ -233,13 +239,9 @@ st.caption(
     "NULL ages (~47% of incidents) are excluded — interpret cautiously."
 )
 
-df_age = (
-    df_demo[
-        (df_demo["CITY_NAME"] == selected_city) &
-        (df_demo["AVG_OFFENDER_AGE"].notna())
-    ]
-    .sort_values("AVG_OFFENDER_AGE", ascending=True)
-)
+df_age = df_demo[
+    (df_demo["CITY_NAME"] == selected_city) & (df_demo["AVG_OFFENDER_AGE"].notna())
+].sort_values("AVG_OFFENDER_AGE", ascending=True)
 
 if df_age.empty:
     st.info(f"No age data available for {selected_city}.")
@@ -264,9 +266,7 @@ else:
                     line=dict(width=1, color=PALETTE["bg_border"]),
                 ),
                 hovertemplate=(
-                    "<b>%{y}</b><br>"
-                    f"Crime against: {ca}<br>"
-                    "Avg age: %{x:.1f}<extra></extra>"
+                    f"<b>%{{y}}</b><br>Crime against: {ca}<br>Avg age: %{{x:.1f}}<extra></extra>"
                 ),
             )
         )
@@ -285,9 +285,9 @@ st.divider()
 st.markdown(
     """
     <div class="narrative-hook">
-        Summer peaks. Weekend surges. Night-time property crime. 
-        The patterns are consistent — but the <em>intensity</em> varies dramatically 
-        across Colorado's income landscape. 
+        Summer peaks. Weekend surges. Night-time property crime.
+        The patterns are consistent — but the <em>intensity</em> varies dramatically
+        across Colorado's income landscape.
         Act 3 asks: <strong>who bears the burden?</strong>
     </div>
     """,

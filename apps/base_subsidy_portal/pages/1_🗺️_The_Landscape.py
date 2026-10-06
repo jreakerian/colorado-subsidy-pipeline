@@ -20,14 +20,13 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
 from components.data_loaders import (
     get_session,
     load_crime_categories_by_county,
     load_crime_density_by_county,
     load_crime_type_distribution_by_county,
 )
-from components.styles import PALETTE, inject_css, act_header
+from components.styles import PALETTE, act_header, inject_css
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -54,7 +53,7 @@ act_header(
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 with st.spinner("Querying Snowflake…"):
-    df_density  = load_crime_density_by_county(session)
+    df_density = load_crime_density_by_county(session)
     df_type_dist = load_crime_type_distribution_by_county(session)
     df_categories = load_crime_categories_by_county(session)
 
@@ -65,6 +64,7 @@ st.caption(
     "eliminating the area bias of a choropleth. Large rural counties no longer "
     "dominate visually. Hover a bubble for details."
 )
+
 
 # Derive county centroids from the GeoJSON already in memory (no extra data source)
 def _centroid(geometry):
@@ -78,6 +78,7 @@ def _centroid(geometry):
     lons = [c[0] for c in coords]
     lats = [c[1] for c in coords]
     return sum(lats) / len(lats), sum(lons) / len(lons)
+
 
 centroids_df = pd.DataFrame(
     [
@@ -158,20 +159,19 @@ col_left, col_right = st.columns([1, 1], gap="large")
 # ── Chart 2: Crime volume bar chart ───────────────────────────────────────────
 with col_left:
     if filtering:
-        st.subheader(f"Crime Volume — {len(active_counties)} Selected {'County' if len(active_counties) == 1 else 'Counties'}")
+        st.subheader(
+            f"Crime Volume — {len(active_counties)} Selected {'County' if len(active_counties) == 1 else 'Counties'}"
+        )
         st.caption("Filtered to your selection, sorted by total crime volume.")
-        df_bar = (
-            df_density[df_density["COUNTY_NAME"].isin(active_counties)]
-            .sort_values("TOTAL_CRIMES", ascending=True)
+        df_bar = df_density[df_density["COUNTY_NAME"].isin(active_counties)].sort_values(
+            "TOTAL_CRIMES", ascending=True
         )
     else:
         st.subheader("Top 15 Counties — Total Crime Volume")
-        st.caption("Raw incident count; dominated by population centres (Denver, El Paso, Arapahoe).")
-        df_bar = (
-            df_density
-            .nlargest(15, "TOTAL_CRIMES")
-            .sort_values("TOTAL_CRIMES", ascending=True)
+        st.caption(
+            "Raw incident count; dominated by population centres (Denver, El Paso, Arapahoe)."
         )
+        df_bar = df_density.nlargest(15, "TOTAL_CRIMES").sort_values("TOTAL_CRIMES", ascending=True)
 
     fig_bar = px.bar(
         df_bar,
@@ -211,8 +211,7 @@ with col_right:
     df_type_filtered = df_type_dist[df_type_dist["COUNTY_NAME"].isin(active_counties)]
 
     df_pivot = (
-        df_type_filtered
-        .pivot_table(
+        df_type_filtered.pivot_table(
             index="COUNTY_NAME",
             columns="CRIME_AGAINST",
             values="PCT_OF_COUNTY_CRIMES",
@@ -254,9 +253,9 @@ st.divider()
 st.markdown(
     """
     <div class="narrative-hook">
-        The choropleth reveals an uncomfortable truth: the counties with the <em>lowest 
-        raw crime counts</em> often carry the <em>highest per-capita rates</em>. 
-        Rural Colorado is not as safe as the numbers first suggest. 
+        The choropleth reveals an uncomfortable truth: the counties with the <em>lowest
+        raw crime counts</em> often carry the <em>highest per-capita rates</em>.
+        Rural Colorado is not as safe as the numbers first suggest.
         Act 2 asks: <strong>when</strong> does this crime happen?
     </div>
     """,

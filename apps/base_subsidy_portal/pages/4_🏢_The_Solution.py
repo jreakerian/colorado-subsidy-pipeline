@@ -3,7 +3,7 @@ Page 4 — 🏢 The Solution
 
 Act 4 of the B.A.S.E. data narrative.
 
-"Acts 1–3 mapped the problem. Act 4 is the intervention:
+"Acts 1-3 mapped the problem. Act 4 is the intervention:
  a composite scoring engine that ranks every Colorado business
  for security subsidy eligibility."
 
@@ -13,10 +13,8 @@ Tabs:
   C. Program Overview — analytics: how the scoring engine works (new)
 """
 
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
 from components.data_loaders import (
     get_session,
     load_eligible_by_county,
@@ -40,7 +38,7 @@ session = get_session()
 act_header(
     4,
     "The Solution — B.A.S.E. Program",
-    "Acts 1–3 mapped the problem. Act 4 is the intervention: a composite "
+    "Acts 1-3 mapped the problem. Act 4 is the intervention: a composite "
     "scoring engine that ranked every Colorado business for security subsidy "
     "eligibility — turning 9M crime incidents into 3.1M business decisions.",
 )
@@ -79,14 +77,15 @@ tab_lookup, tab_admin, tab_overview = st.tabs(
 # (Preserved exactly from original app — logic unchanged)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def _render_single_result(row) -> None:
     """Render the full eligibility card for a single matched business."""
-    qualifies         = bool(row.get("QUALIFIES_FOR_SUBSIDY"))
-    tier              = int(row.get("COMPOSITE_TIER", 0))
-    entity_status     = row.get("ENTITY_STATUS", "")
+    qualifies = bool(row.get("QUALIFIES_FOR_SUBSIDY"))
+    tier = int(row.get("COMPOSITE_TIER", 0))
+    entity_status = row.get("ENTITY_STATUS", "")
     compliance_status = row.get("COMPLIANCE_STATUS", "Compliant")
-    pending           = compliance_status == "Pending Compliance"
-    message           = row.get("SUBSIDY_MESSAGE") or "No eligibility message available."
+    pending = compliance_status == "Pending Compliance"
+    message = row.get("SUBSIDY_MESSAGE") or "No eligibility message available."
 
     # Card left-border: amber for pending compliance, tier colour otherwise
     TIER_COLORS_INLINE = {4: "#00C853", 3: "#2EA043", 2: "#8B949E", 1: "#30363D"}
@@ -106,9 +105,9 @@ def _render_single_result(row) -> None:
             <div style="font-size:0.75rem;color:#8B949E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Business</div>
             <div style="font-size:1.3rem;font-weight:700;color:#E6EDF3;">{row.get("ENTITY_NAME", "—")}</div>
             <div style="font-size:0.85rem;color:#8B949E;margin-top:4px;">
-                Entity ID: {row.get("ENTITY_ID","—")} &nbsp;·&nbsp;
-                {row.get("ENTITY_TYPE","—")} &nbsp;·&nbsp;
-                {row.get("PRINCIPAL_CITY","—")}, {row.get("PRINCIPAL_COUNTY","—")} {row.get("PRINCIPAL_ZIP","") or ""}
+                Entity ID: {row.get("ENTITY_ID", "—")} &nbsp;·&nbsp;
+                {row.get("ENTITY_TYPE", "—")} &nbsp;·&nbsp;
+                {row.get("PRINCIPAL_CITY", "—")}, {row.get("PRINCIPAL_COUNTY", "—")} {row.get("PRINCIPAL_ZIP", "") or ""}
             </div>
         </div>
         """,
@@ -222,7 +221,6 @@ def _render_single_result(row) -> None:
         )
 
 
-
 with tab_lookup:
     st.subheader("Colorado B.A.S.E. Subsidy Checker")
     st.markdown(
@@ -270,25 +268,33 @@ with tab_lookup:
                 # after the dbt rebuild; fall back gracefully if not yet deployed)
                 available = results.columns.tolist()
                 display_cols = [
-                    c for c in [
-                        "ENTITY_ID", "ENTITY_NAME", "PRINCIPAL_CITY",
-                        "PRINCIPAL_COUNTY", "ENTITY_TYPE", "ENTITY_STATUS",
-                        "SUBSIDY_TIER_LABEL", "COMPLIANCE_STATUS", "QUALIFIES_FOR_SUBSIDY",
-                    ] if c in available
+                    c
+                    for c in [
+                        "ENTITY_ID",
+                        "ENTITY_NAME",
+                        "PRINCIPAL_CITY",
+                        "PRINCIPAL_COUNTY",
+                        "ENTITY_TYPE",
+                        "ENTITY_STATUS",
+                        "SUBSIDY_TIER_LABEL",
+                        "COMPLIANCE_STATUS",
+                        "QUALIFIES_FOR_SUBSIDY",
+                    ]
+                    if c in available
                 ]
                 st.dataframe(
                     results[display_cols],
                     width="stretch",
                     hide_index=True,
                     column_config={
-                        "ENTITY_ID":             st.column_config.TextColumn("Entity ID"),
-                        "ENTITY_NAME":           st.column_config.TextColumn("Business Name"),
-                        "PRINCIPAL_CITY":        st.column_config.TextColumn("City"),
-                        "PRINCIPAL_COUNTY":      st.column_config.TextColumn("County"),
-                        "ENTITY_TYPE":           st.column_config.TextColumn("Type"),
-                        "ENTITY_STATUS":         st.column_config.TextColumn("CDOS Status"),
-                        "SUBSIDY_TIER_LABEL":    st.column_config.TextColumn("Subsidy Tier"),
-                        "COMPLIANCE_STATUS":     st.column_config.TextColumn("Compliance"),
+                        "ENTITY_ID": st.column_config.TextColumn("Entity ID"),
+                        "ENTITY_NAME": st.column_config.TextColumn("Business Name"),
+                        "PRINCIPAL_CITY": st.column_config.TextColumn("City"),
+                        "PRINCIPAL_COUNTY": st.column_config.TextColumn("County"),
+                        "ENTITY_TYPE": st.column_config.TextColumn("Type"),
+                        "ENTITY_STATUS": st.column_config.TextColumn("CDOS Status"),
+                        "SUBSIDY_TIER_LABEL": st.column_config.TextColumn("Subsidy Tier"),
+                        "COMPLIANCE_STATUS": st.column_config.TextColumn("Compliance"),
                         "QUALIFIES_FOR_SUBSIDY": st.column_config.CheckboxColumn("Qualifies"),
                     },
                 )
@@ -315,23 +321,23 @@ with tab_admin:
         with st.spinner("Loading eligibility data…"):
             try:
                 _eligible_total = load_eligible_total(session)
-                _county_counts  = load_eligible_by_county(session)
-                _tier_counts    = load_tier_breakdown(session)
+                _county_counts = load_eligible_by_county(session)
+                _tier_counts = load_tier_breakdown(session)
 
                 m1, m2, m3 = st.columns(3)
                 m1.metric("Notification-Eligible Businesses", f"{_eligible_total:,}")
                 m2.metric("Counties with Eligible Businesses", f"{len(_county_counts):,}")
-                top_county = _county_counts.iloc[0]["PRINCIPAL_COUNTY"] if not _county_counts.empty else "—"
+                top_county = (
+                    _county_counts.iloc[0]["PRINCIPAL_COUNTY"] if not _county_counts.empty else "—"
+                )
                 m3.metric("Highest-Need County", top_county)
 
                 st.divider()
                 st.subheader("Eligible Businesses by County — Top 30")
 
                 if not _county_counts.empty:
-                    df_county_plot = (
-                        _county_counts
-                        .nlargest(30, "ELIGIBLE_BUSINESSES")
-                        .sort_values("ELIGIBLE_BUSINESSES", ascending=True)
+                    df_county_plot = _county_counts.nlargest(30, "ELIGIBLE_BUSINESSES").sort_values(
+                        "ELIGIBLE_BUSINESSES", ascending=True
                     )
                     fig_county = go.Figure(
                         go.Bar(
@@ -359,8 +365,10 @@ with tab_admin:
                             width="stretch",
                             hide_index=True,
                             column_config={
-                                "PRINCIPAL_COUNTY":    st.column_config.TextColumn("County"),
-                                "ELIGIBLE_BUSINESSES": st.column_config.NumberColumn("Eligible Businesses", format="%d"),
+                                "PRINCIPAL_COUNTY": st.column_config.TextColumn("County"),
+                                "ELIGIBLE_BUSINESSES": st.column_config.NumberColumn(
+                                    "Eligible Businesses", format="%d"
+                                ),
                             },
                         )
 
@@ -380,7 +388,9 @@ with tab_admin:
                         2: PALETTE["tier_2"],
                         1: PALETTE["tier_1"],
                     }
-                    _tier_counts["TIER_LABEL_DISPLAY"] = _tier_counts["COMPOSITE_TIER"].map(tier_label_map)
+                    _tier_counts["TIER_LABEL_DISPLAY"] = _tier_counts["COMPOSITE_TIER"].map(
+                        tier_label_map
+                    )
                     _tier_counts["TIER_COLOR"] = _tier_counts["COMPOSITE_TIER"].map(tier_color_map)
 
                     fig_donut = go.Figure(
@@ -398,12 +408,15 @@ with tab_admin:
                         height=360,
                         showlegend=True,
                         legend=dict(orientation="v", x=1.02, y=0.5),
-                        annotations=[dict(
-                            text=f"{_tier_counts['BUSINESSES'].sum():,}<br><span style='font-size:12px'>businesses</span>",
-                            x=0.5, y=0.5,
-                            font=dict(size=18, color=PALETTE["text"]),
-                            showarrow=False,
-                        )],
+                        annotations=[
+                            dict(
+                                text=f"{_tier_counts['BUSINESSES'].sum():,}<br><span style='font-size:12px'>businesses</span>",
+                                x=0.5,
+                                y=0.5,
+                                font=dict(size=18, color=PALETTE["text"]),
+                                showarrow=False,
+                            )
+                        ],
                     )
                     st.plotly_chart(fig_donut, width="stretch")
 
@@ -413,9 +426,13 @@ with tab_admin:
                             width="stretch",
                             hide_index=True,
                             column_config={
-                                "COMPOSITE_TIER":    st.column_config.NumberColumn("Tier", format="%d"),
+                                "COMPOSITE_TIER": st.column_config.NumberColumn(
+                                    "Tier", format="%d"
+                                ),
                                 "SUBSIDY_TIER_LABEL": st.column_config.TextColumn("Label"),
-                                "BUSINESSES":        st.column_config.NumberColumn("Businesses", format="%d"),
+                                "BUSINESSES": st.column_config.NumberColumn(
+                                    "Businesses", format="%d"
+                                ),
                             },
                         )
             except Exception as e:
@@ -428,7 +445,7 @@ with tab_admin:
 with tab_overview:
     st.subheader("How the B.A.S.E. Composite Score Works")
     st.markdown(
-        "Each business is assigned a **Composite Tier (1–4)** from three independent "
+        "Each business is assigned a **Composite Tier (1-4)** from three independent "
         "sub-scores. This tab explains the scoring logic — ideal for a portfolio walkthrough."
     )
 
@@ -439,8 +456,8 @@ with tab_overview:
             <div style="background:#161B22;border:1px solid #30363D;border-top:3px solid #FF6B35;border-radius:8px;padding:16px;">
                 <div style="font-weight:700;font-size:0.95rem;color:#E6EDF3;margin-bottom:8px;">🔴 Crime Tier</div>
                 <div style="font-size:0.82rem;color:#8B949E;line-height:1.7;">
-                    Derived from the county's <strong>crime rate per 100K</strong> 
-                    from <code>fct_crimes</code> × <code>dim_geography</code>.<br><br>
+                    Derived from the county's <strong>crime rate per 100K</strong>
+                    from <code>fct_crimes</code> x <code>dim_geography</code>.<br><br>
                     Quartile rank across all 64 counties →
                     Tier 1 (lowest crime) to Tier 4 (highest crime).
                 </div>
@@ -456,7 +473,7 @@ with tab_overview:
                 <div style="font-size:0.82rem;color:#8B949E;line-height:1.7;">
                     Derived from the county's <strong>median household income</strong>
                     from <code>fct_income_population</code>.<br><br>
-                    Inverse quartile rank → lowest income counties receive Tier 4 
+                    Inverse quartile rank → lowest income counties receive Tier 4
                     (highest subsidy need).
                 </div>
             </div>
@@ -489,7 +506,7 @@ with tab_overview:
         ">
             <div style="font-weight:700;font-size:1rem;color:#FF6B35;margin-bottom:8px;">Composite Formula</div>
             <div style="font-family:monospace;font-size:0.95rem;color:#E6EDF3;line-height:2;">
-                composite_tier = ROUND( (crime_tier × 0.5) + (income_tier × 0.3) + (population_tier × 0.2) )<br>
+                composite_tier = ROUND( (crime_tier x 0.5) + (income_tier x 0.3) + (population_tier x 0.2) )<br>
                 Clamped to [1, 4] &nbsp;·&nbsp; Computed in <code>fct_business_subsidy_tiers</code><br>
                 Joined to <code>rpt_business_tier_lookup</code> for public-facing search
             </div>
@@ -506,8 +523,8 @@ with tab_overview:
         ```
         Raw Sources                  Snowflake Medallion              Streamlit
         ──────────────────           ─────────────────────────        ──────────────────────
-        CDPS Crime (2001–2020)  →    Bronze (raw)                →    Page 1: Choropleth map
-        NIBRS Crime (1997–2009) →    Silver (cleaned + unified)  →    Page 2: Seasonal heatmap
+        CDPS Crime (2001-2020)  →    Bronze (raw)                →    Page 1: Choropleth map
+        NIBRS Crime (1997-2009) →    Silver (cleaned + unified)  →    Page 2: Seasonal heatmap
         ACS Census Income       →    Gold  (star schema marts)   →    Page 3: Disparity scatter
         CO SOS Business List    →                                →    Page 4: B.A.S.E. Lookup  ← you are here
         ```

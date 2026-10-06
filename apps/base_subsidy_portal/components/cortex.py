@@ -17,8 +17,8 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 import requests
@@ -26,21 +26,22 @@ import streamlit as st
 from snowflake.snowpark import Session
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-YAML_FILE  = "cortex_semantic_model.yaml"
+YAML_FILE = "cortex_semantic_model.yaml"
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 LOCAL_YAML = ASSETS_DIR / YAML_FILE
 
 CORTEX_API_PATH = "/api/v2/cortex/analyst/message"
-REQUEST_TIMEOUT = 90   # Cortex Analyst can take up to ~60s on complex queries
+REQUEST_TIMEOUT = 90  # Cortex Analyst can take up to ~60s on complex queries
 
 
 def _load_semantic_model_yaml() -> str:
     """Read the semantic model YAML from the local assets directory."""
-    with open(LOCAL_YAML, "r", encoding="utf-8") as f:
+    with open(LOCAL_YAML, encoding="utf-8") as f:
         return f.read()
 
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
+
 
 def _get_host_and_token(session: Session) -> tuple[str, str, str]:
     """
@@ -52,13 +53,14 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
     that must be sent as Snowflake Token (OAuth format).
 
     Returns:
-        host      – e.g. "zcelbqo-hnb09831.snowflakecomputing.com"
-        token     – JWT string (local) or OAuth token string (SiS)
-        auth_type – "KEYPAIR_JWT" or "OAUTH"
+        host      - e.g. "zcelbqo-hnb09831.snowflakecomputing.com"
+        token     - JWT string (local) or OAuth token string (SiS)
+        auth_type - "KEYPAIR_JWT" or "OAUTH"
     """
     # ── Path 1: Streamlit in Snowflake ────────────────────────────────────────
     try:
         import _snowflake  # only present inside SiS runtime
+
         account = st.secrets["connections"]["snowflake"]["account"]
         host = account.lower() + ".snowflakecomputing.com"
         token = _snowflake.get_connection_token()
@@ -76,10 +78,10 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
     from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
     cfg = st.secrets["connections"]["snowflake"]
-    account  = cfg["account"]           # e.g. "ZCELBQO-HNB09831"
-    user     = cfg["user"]
-    pk_path  = cfg["private_key_file"]
-    pk_pass  = cfg.get("private_key_passphrase", "")
+    account = cfg["account"]  # e.g. "ZCELBQO-HNB09831"
+    user = cfg["user"]
+    pk_path = cfg["private_key_file"]
+    pk_pass = cfg.get("private_key_passphrase", "")
 
     host = account.lower() + ".snowflakecomputing.com"
 
@@ -95,9 +97,7 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint = "SHA256:" + base64.b64encode(
-        hashlib.sha256(pub_der).digest()
-    ).decode()
+    fingerprint = "SHA256:" + base64.b64encode(hashlib.sha256(pub_der).digest()).decode()
 
     # JWT payload — Snowflake expects ACCOUNT.USER (uppercase)
     qualified = f"{account.upper()}.{user.upper()}"
@@ -113,13 +113,13 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
     return host, jwt_token, "KEYPAIR_JWT"
 
 
-
 # ── Cortex Analyst API ─────────────────────────────────────────────────────────
+
 
 def ask_cortex_analyst(
     session: Session,
     question: str,
-    conversation_history: Optional[list[dict]] = None,
+    conversation_history: list[dict] | None = None,
 ) -> dict:
     """
     Call the Cortex Analyst REST API with a question and optional conversation history.
@@ -150,22 +150,21 @@ def ask_cortex_analyst(
 
     # Build messages list
     messages: list[dict] = list(conversation_history or [])
-    messages.append({
-        "role": "user",
-        "content": [{"type": "text", "text": question}],
-    })
+    messages.append(
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": question}],
+        }
+    )
 
     payload = {
         "messages": messages,
-        "semantic_model": semantic_model_yaml,   # inline — no stage needed
+        "semantic_model": semantic_model_yaml,  # inline — no stage needed
     }
 
     # Cortex Analyst /api/v2/ uses Bearer JWT for key-pair auth
     # Streamlit-in-Snowflake supplies an OAuth token (Snowflake Token format)
-    if auth_type == "KEYPAIR_JWT":
-        auth_header = f"Bearer {token}"
-    else:
-        auth_header = f'Snowflake Token="{token}"'
+    auth_header = f"Bearer {token}" if auth_type == "KEYPAIR_JWT" else f'Snowflake Token="{token}"'
 
     try:
         resp = requests.post(
@@ -188,10 +187,8 @@ def ask_cortex_analyst(
         }
     except requests.exceptions.HTTPError as exc:
         body = {}
-        try:
+        with contextlib.suppress(Exception):
             body = exc.response.json()
-        except Exception:
-            pass
         return {
             "error": f"API error {exc.response.status_code}: {body.get('message', str(exc))}",
             "message": None,
@@ -201,6 +198,7 @@ def ask_cortex_analyst(
 
 
 # ── Response parsing ───────────────────────────────────────────────────────────
+
 
 def parse_analyst_response(response: dict) -> dict:
     """
@@ -225,10 +223,7 @@ def parse_analyst_response(response: dict) -> dict:
     result = {"error": None, "text": None, "sql": None, "warnings": []}
 
     # Warnings
-    result["warnings"] = [
-        w.get("message", str(w))
-        for w in response.get("warnings", [])
-    ]
+    result["warnings"] = [w.get("message", str(w)) for w in response.get("warnings", [])]
 
     # Content blocks from the analyst message
     message = response.get("message", {})
@@ -266,6 +261,7 @@ def auto_chart(df: pd.DataFrame, title: str = "") -> bool:
      - otherwise                          → table
     """
     import plotly.express as px
+
     from components.styles import PALETTE
 
     if df is None or df.empty:
@@ -278,7 +274,9 @@ def auto_chart(df: pd.DataFrame, title: str = "") -> bool:
         # Single scalar
         col_name = cols[0]
         val = df.iloc[0, 0]
-        st.metric(col_name.replace("_", " ").title(), f"{val:,}" if isinstance(val, (int, float)) else val)
+        st.metric(
+            col_name.replace("_", " ").title(), f"{val:,}" if isinstance(val, (int, float)) else val
+        )
         return True
 
     if len(cols) >= 2 and len(numeric_cols) >= 1:
@@ -297,7 +295,9 @@ def auto_chart(df: pd.DataFrame, title: str = "") -> bool:
                 labels={num_col: num_col.replace("_", " ").title(), cat_col: ""},
             )
             fig.update_traces(marker_line_width=0)
-            fig.update_layout(height=max(300, min(600, len(df) * 28)), margin=dict(l=160, r=20, t=40, b=20))
+            fig.update_layout(
+                height=max(300, min(600, len(df) * 28)), margin=dict(l=160, r=20, t=40, b=20)
+            )
             st.plotly_chart(fig, width="stretch")
             return True
 

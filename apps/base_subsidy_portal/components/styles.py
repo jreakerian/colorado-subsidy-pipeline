@@ -20,36 +20,30 @@ import streamlit as st
 
 PALETTE = {
     # Brand
-    "primary": "#FF6B35",       # Orange — accent, highlights, CTAs
+    "primary": "#FF6B35",  # Orange — accent, highlights, CTAs
     "primary_light": "#FF8C5A",
     "primary_dark": "#CC4A1A",
-
     # Backgrounds (match config.toml)
-    "bg": "#0D1117",            # Page background
-    "bg_card": "#161B22",       # Card / secondary background
-    "bg_border": "#30363D",     # Subtle borders
-
+    "bg": "#0D1117",  # Page background
+    "bg_card": "#161B22",  # Card / secondary background
+    "bg_border": "#30363D",  # Subtle borders
     # Text
-    "text": "#E6EDF3",          # Primary text
-    "text_muted": "#8B949E",    # Secondary / caption text
-
+    "text": "#E6EDF3",  # Primary text
+    "text_muted": "#8B949E",  # Secondary / caption text
     # Crime-against categories (Property, Person, Society)
-    "property": "#4C9BE8",      # Blue
-    "person": "#FF6B35",        # Orange
-    "society": "#7B68EE",       # Purple
-
+    "property": "#4C9BE8",  # Blue
+    "person": "#FF6B35",  # Orange
+    "society": "#7B68EE",  # Purple
     # Seasons
     "winter": "#4C9BE8",
     "spring": "#2EA043",
     "summer": "#FF6B35",
     "fall": "#D4A017",
-
     # Subsidy tiers
-    "tier_4": "#00C853",        # Maximum — green
-    "tier_3": "#2EA043",        # Enhanced — mid green
-    "tier_2": "#8B949E",        # Standard — gray
-    "tier_1": "#30363D",        # Basic — dark gray
-
+    "tier_4": "#00C853",  # Maximum — green
+    "tier_3": "#2EA043",  # Enhanced — mid green
+    "tier_2": "#8B949E",  # Standard — gray
+    "tier_1": "#30363D",  # Basic — dark gray
     # Sequential scale for choropleth / heatmaps (light → dark orange)
     "scale": [
         [0.0, "#161B22"],
@@ -77,6 +71,7 @@ TIER_COLORS = {
 # ---------------------------------------------------------------------------
 # Plotly Template
 # ---------------------------------------------------------------------------
+
 
 def _build_plotly_template() -> go.layout.Template:
     """Build and register a custom Plotly template matching the dark theme."""
@@ -231,6 +226,7 @@ def inject_css() -> None:
 # ---------------------------------------------------------------------------
 # Narrative helpers
 # ---------------------------------------------------------------------------
+
 
 def act_header(act_num: int, act_title: str, hook: str) -> None:
     """Render a standardised Act header with badge + narrative hook."""

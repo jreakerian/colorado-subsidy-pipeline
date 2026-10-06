@@ -13,7 +13,6 @@ Sections:
 
 import plotly.express as px
 import streamlit as st
-
 from components.data_loaders import get_session
 from components.semantic_layer import (
     METRICS,
@@ -92,8 +91,8 @@ if kpi_search.strip():
 
 # Colour rows by metric type
 TYPE_COLORS = {
-    "Simple":  PALETTE["bg_border"],
-    "Ratio":   "#2d3561",
+    "Simple": PALETTE["bg_border"],
+    "Ratio": "#2d3561",
     "Derived": "#3d1e6b",
 }
 
@@ -103,12 +102,12 @@ st.dataframe(
     hide_index=True,
     height=min(600, 55 + len(df_catalog) * 38),
     column_config={
-        "Metric":       st.column_config.TextColumn("Metric", width="medium"),
-        "Type":         st.column_config.TextColumn("Type", width="small"),
-        "Aggregation":  st.column_config.TextColumn("Aggregation", width="medium"),
+        "Metric": st.column_config.TextColumn("Metric", width="medium"),
+        "Type": st.column_config.TextColumn("Type", width="small"),
+        "Aggregation": st.column_config.TextColumn("Aggregation", width="medium"),
         "Source Model": st.column_config.TextColumn("Source Model", width="medium"),
-        "KPIs":         st.column_config.TextColumn("KPIs", width="small"),
-        "Description":  st.column_config.TextColumn("Description", width="large"),
+        "KPIs": st.column_config.TextColumn("KPIs", width="small"),
+        "Description": st.column_config.TextColumn("Description", width="large"),
     },
 )
 
@@ -117,11 +116,13 @@ type_counts = get_metric_catalog_df()["Type"].value_counts().reset_index()
 type_counts.columns = ["Type", "Count"]
 fig_types = px.bar(
     type_counts,
-    x="Count", y="Type", orientation="h",
+    x="Count",
+    y="Type",
+    orientation="h",
     color="Type",
     color_discrete_map={
-        "Simple":  PALETTE["primary"],
-        "Ratio":   "#7b68ee",
+        "Simple": PALETTE["primary"],
+        "Ratio": "#7b68ee",
         "Derived": "#c471ed",
     },
     text="Count",
@@ -129,7 +130,8 @@ fig_types = px.bar(
 )
 fig_types.update_traces(textposition="outside", marker_line_width=0)
 fig_types.update_layout(
-    height=200, showlegend=False,
+    height=200,
+    showlegend=False,
     margin=dict(l=80, r=40, t=40, b=20),
     xaxis=dict(showgrid=False, visible=False),
 )
@@ -151,8 +153,8 @@ st.markdown(
 ```mermaid
 graph TD
     subgraph Sources["📥 Raw Sources"]
-        S1["CDPS Crime Incidents\n(9M rows, 1997–2024)"]
-        S2["BEA Income & Population\n(county × year)"]
+        S1["CDPS Crime Incidents\n(9M rows, 1997-2024)"]
+        S2["BEA Income & Population\n(county x year)"]
         S3["CDOS Business Registry\n(3.1M businesses)"]
     end
 
@@ -173,7 +175,7 @@ graph TD
     end
 
     subgraph Apps["🖥️ Applications"]
-        ST["Streamlit Portal\nPages 1–5: Data Narrative\nPage 6: Cortex Analyst Chat\nPage 7: Semantic Layer"]
+        ST["Streamlit Portal\nPages 1-5: Data Narrative\nPage 6: Cortex Analyst Chat\nPage 7: Semantic Layer"]
         CA["Cortex Analyst\ncortex_semantic_model.yaml\n(grounded on Gold marts)"]
     end
 
@@ -221,7 +223,9 @@ no denormalization, no drift between three copies of the same formula.
 """
 )
 
-tab_yaml, tab_sql, tab_chart = st.tabs(["📄 YAML Definition", "🔍 Equivalent SQL", "📊 Live Results"])
+tab_yaml, tab_sql, tab_chart = st.tabs(
+    ["📄 YAML Definition", "🔍 Equivalent SQL", "📊 Live Results"]
+)
 
 with tab_yaml:
     st.code(
@@ -306,7 +310,7 @@ with tab_chart:
             color="CRIME_RATE_PER_100K",
             color_continuous_scale=["#1a1f2e", PALETTE["primary"]],
             labels={
-                "CRIME_RATE_PER_100K": "Cumulative Crimes per 100k Residents (1997–2024)",
+                "CRIME_RATE_PER_100K": "Cumulative Crimes per 100k Residents (1997-2024)",
                 "COUNTY_NAME": "",
             },
             title="crime_rate_per_100k — Top 15 Colorado Counties (27-year cumulative)",
@@ -321,12 +325,12 @@ with tab_chart:
         st.plotly_chart(fig, width="stretch")
         st.caption(
             f"↳ Live from Snowflake · {len(df_spotlight):,} counties · "
-            "RPT_COUNTY_AGENCY_CRIME_BASELINE × FCT_INCOME_POPULATION via DIM_GEOGRAPHY"
+            "RPT_COUNTY_AGENCY_CRIME_BASELINE x FCT_INCOME_POPULATION via DIM_GEOGRAPHY"
         )
         st.info(
             "📌 **Note on scale:** `total_crimes` reflects cumulative 27-year NIBRS "
-            "administrative records (1997–2024). NIBRS generates multiple records per "
-            "physical incident (one per offender × victim × offense combination), so "
+            "administrative records (1997-2024). NIBRS generates multiple records per "
+            "physical incident (one per offender x victim x offense combination), so "
             "absolute values are higher than unique incident counts. "
             "The relative ranking across counties is correct."
         )
@@ -365,8 +369,8 @@ for sq in SAVED_QUERIES:
         st.markdown("**Equivalent SQL**")
         st.code(sq["sql"], language="sql")
 
-        if st.button(f"▶ Run live on Snowflake", key=f"run_{sq['name']}"):
-            with st.spinner(f"Querying Snowflake…"):
+        if st.button("▶ Run live on Snowflake", key=f"run_{sq['name']}"):
+            with st.spinner("Querying Snowflake…"):
                 df_result = run_saved_query(session, sq["name"])
             if not df_result.empty:
                 st.dataframe(df_result, width="stretch", hide_index=True)

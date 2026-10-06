@@ -9,8 +9,8 @@ Navigation: Use the sidebar to explore the 5-act data narrative and AI features.
 """
 
 import streamlit as st
-from components.styles import inject_css, PALETTE
 from components.data_loaders import get_session, load_headline_stats
+from components.styles import inject_css
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -77,7 +77,7 @@ with st.spinner("Loading pipeline statistics..."):
         c1.metric(
             "Crime Incidents Processed",
             f"{stats['total_crimes']:,}",
-            help="Total rows ingested from 2 Colorado crime datasets (1997–2020)",
+            help="Total rows ingested from 2 Colorado crime datasets (1997-2020)",
         )
         c2.metric(
             "Counties Analyzed",
@@ -92,7 +92,7 @@ with st.spinner("Loading pipeline statistics..."):
         c4.metric(
             "Years of Data",
             f"{stats['years_of_data']} yrs",
-            f"{stats['year_min']}–{stats['year_max']}",
+            f"{stats['year_min']}-{stats['year_max']}",
             help="Longitudinal crime and socioeconomic data",
         )
     except Exception as e:
@@ -101,7 +101,7 @@ with st.spinner("Loading pipeline statistics..."):
         c1.metric("Crime Incidents Processed", "9,048,771")
         c2.metric("Counties Analyzed", "64")
         c3.metric("Businesses Scored", "3.1M+")
-        c4.metric("Years of Data", "23 yrs", "1997–2020")
+        c4.metric("Years of Data", "23 yrs", "1997-2020")
 
 st.divider()
 
@@ -117,11 +117,19 @@ st.markdown(
 )
 
 acts = [
-    ("🗺️", "Act 1 — The Landscape",   "Where is crime happening across Colorado's 64 counties?"),
-    ("📊", "Act 2 — The Patterns",    "When does crime peak — by season, day of week, and hour?"),
-    ("💰", "Act 3 — The Disparity",   "How do income and population growth correlate with crime rates?"),
-    ("🏢", "Act 4 — The Solution",    "The B.A.S.E. subsidy program: composite scoring across 3.1M businesses."),
-    ("🎯", "Act 5 — The Impact",      "Measurable targets: every agency gets a crime reduction goal."),
+    ("🗺️", "Act 1 — The Landscape", "Where is crime happening across Colorado's 64 counties?"),
+    ("📊", "Act 2 — The Patterns", "When does crime peak — by season, day of week, and hour?"),
+    (
+        "💰",
+        "Act 3 — The Disparity",
+        "How do income and population growth correlate with crime rates?",
+    ),
+    (
+        "🏢",
+        "Act 4 — The Solution",
+        "The B.A.S.E. subsidy program: composite scoring across 3.1M businesses.",
+    ),
+    ("🎯", "Act 5 — The Impact", "Measurable targets: every agency gets a crime reduction goal."),
 ]
 
 cols = st.columns(len(acts))
@@ -168,7 +176,7 @@ with col_a:
             </div>
             <div style="font-size: 0.85rem; color: #8B949E; line-height: 1.6;">
                 Natural language querying powered by <strong style="color:#FF6B35">Snowflake Cortex Analyst</strong>.
-                Ask any question about Colorado crime, income, or subsidies — 
+                Ask any question about Colorado crime, income, or subsidies —
                 the AI translates it to SQL grounded by your semantic model.
             </div>
         </div>
@@ -190,8 +198,8 @@ with col_b:
                 Semantic Layer
             </div>
             <div style="font-size: 0.85rem; color: #8B949E; line-height: 1.6;">
-                Metrics defined once in <strong style="color:#FF6B35">dbt MetricFlow</strong> and 
-                materialized as Snowflake Semantic Views — powering dashboards, 
+                Metrics defined once in <strong style="color:#FF6B35">dbt MetricFlow</strong> and
+                materialized as Snowflake Semantic Views — powering dashboards,
                 BI tools, and AI from a single source of truth.
             </div>
         </div>

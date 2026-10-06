@@ -13,18 +13,16 @@ Shows the socioeconomic dimension of crime:
   - Composite vulnerability ranking table (all 64 counties)
 """
 
-import plotly.express as px
-import plotly.graph_objects as go
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
-
 from components.data_loaders import (
     get_session,
+    load_crime_density_by_county,
     load_crime_vs_income,
     load_income_population_by_county,
-    load_crime_density_by_county,
 )
-from components.styles import PALETTE, inject_css, act_header
+from components.styles import PALETTE, act_header, inject_css
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -48,9 +46,9 @@ act_header(
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 with st.spinner("Querying Snowflake…"):
-    df_scatter   = load_crime_vs_income(session)
-    df_income    = load_income_population_by_county(session)
-    df_density   = load_crime_density_by_county(session)
+    df_scatter = load_crime_vs_income(session)
+    df_income = load_income_population_by_county(session)
+    df_density = load_crime_density_by_county(session)
 
 # ── Chart 1: Scatter — Crime Rate vs Median Income ────────────────────────────
 st.subheader("County KPI 9 — Crime Rate vs Median Household Income")
@@ -81,9 +79,7 @@ if not df_scatter.empty:
             textposition="top center",
             textfont=dict(size=9, color=PALETTE["text_muted"]),
             marker=dict(
-                size=df_scatter["AVG_POPULATION"].apply(
-                    lambda p: max(8, min(28, p / 30_000))
-                ),
+                size=df_scatter["AVG_POPULATION"].apply(lambda p: max(8, min(28, p / 30_000))),
                 color=df_scatter["CRIME_RATE_PER_100K"],
                 colorscale=PALETTE["scale"],
                 showscale=True,
@@ -145,13 +141,11 @@ st.caption(
 
 # Get most recent year's population growth per county
 df_growth = (
-    df_income
-    .dropna(subset=["POPULATION_GROWTH_PCT"])
+    df_income.dropna(subset=["POPULATION_GROWTH_PCT"])
     .sort_values("YEAR")
     .groupby("COUNTY_NAME")
     .last()
-    .reset_index()
-    [["COUNTY_NAME", "POPULATION_GROWTH_PCT", "TOTAL_POPULATION"]]
+    .reset_index()[["COUNTY_NAME", "POPULATION_GROWTH_PCT", "TOTAL_POPULATION"]]
 )
 
 # Merge with crime rate
@@ -181,7 +175,9 @@ if not df_div.empty:
                     title_font=dict(color=PALETTE["text_muted"]),
                 ),
             ),
-            customdata=df_div_plot[["COUNTY_NAME", "CRIME_RATE_PER_100K", "TOTAL_POPULATION"]].values,
+            customdata=df_div_plot[
+                ["COUNTY_NAME", "CRIME_RATE_PER_100K", "TOTAL_POPULATION"]
+            ].values,
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Pop Growth: %{x:.2f}%<br>"
@@ -212,11 +208,7 @@ st.caption(
     "Stagnant or declining income alongside rising crime justifies targeted subsidy intervention."
 )
 
-top10_counties = (
-    df_density
-    .nlargest(10, "CRIME_RATE_PER_100K")["COUNTY_NAME"]
-    .tolist()
-)
+top10_counties = df_density.nlargest(10, "CRIME_RATE_PER_100K")["COUNTY_NAME"].tolist()
 
 df_income_top = df_income[df_income["COUNTY_NAME"].isin(top10_counties)].dropna(
     subset=["PER_CAPITA_INCOME", "YEAR"]
@@ -225,9 +217,16 @@ df_income_top = df_income[df_income["COUNTY_NAME"].isin(top10_counties)].dropna(
 if not df_income_top.empty:
     fig_spark = go.Figure()
     color_list = [
-        PALETTE["primary"], PALETTE["property"], PALETTE["society"],
-        "#2EA043", "#D4A017", "#F85149", "#58A6FF",
-        "#BC8CFF", "#79C0FF", "#56D364",
+        PALETTE["primary"],
+        PALETTE["property"],
+        PALETTE["society"],
+        "#2EA043",
+        "#D4A017",
+        "#F85149",
+        "#58A6FF",
+        "#BC8CFF",
+        "#79C0FF",
+        "#56D364",
     ]
     for i, county in enumerate(top10_counties):
         df_c = df_income_top[df_income_top["COUNTY_NAME"] == county].sort_values("YEAR")
@@ -268,7 +267,7 @@ st.caption(
 # Build composite score
 df_rank = df_scatter.copy()
 
-# Normalise each dimension to 0–1
+# Normalise each dimension to 0-1
 for col_name in ["CRIME_RATE_PER_100K", "AVG_POPULATION"]:
     mn, mx = df_rank[col_name].min(), df_rank[col_name].max()
     df_rank[f"{col_name}_NORM"] = (df_rank[col_name] - mn) / (mx - mn + 1e-9)
@@ -284,21 +283,29 @@ df_rank["VULNERABILITY_SCORE"] = (
 ).round(3)
 
 df_display = (
-    df_rank
-    .sort_values("VULNERABILITY_SCORE", ascending=False)
-    .reset_index(drop=True)
-    [["COUNTY_NAME", "CRIME_RATE_PER_100K", "AVG_MEDIAN_INCOME", "AVG_POPULATION", "VULNERABILITY_SCORE"]]
-    .rename(columns={
-        "COUNTY_NAME": "County",
-        "CRIME_RATE_PER_100K": "Crime Rate / 100K",
-        "AVG_MEDIAN_INCOME": "Avg Median Income",
-        "AVG_POPULATION": "Avg Population",
-        "VULNERABILITY_SCORE": "Vulnerability Score",
-    })
+    df_rank.sort_values("VULNERABILITY_SCORE", ascending=False)
+    .reset_index(drop=True)[
+        [
+            "COUNTY_NAME",
+            "CRIME_RATE_PER_100K",
+            "AVG_MEDIAN_INCOME",
+            "AVG_POPULATION",
+            "VULNERABILITY_SCORE",
+        ]
+    ]
+    .rename(
+        columns={
+            "COUNTY_NAME": "County",
+            "CRIME_RATE_PER_100K": "Crime Rate / 100K",
+            "AVG_MEDIAN_INCOME": "Avg Median Income",
+            "AVG_POPULATION": "Avg Population",
+            "VULNERABILITY_SCORE": "Vulnerability Score",
+        }
+    )
 )
 df_display.index = df_display.index + 1  # 1-indexed rank
 df_display["Avg Median Income"] = df_display["Avg Median Income"].apply(lambda v: f"${v:,.0f}")
-df_display["Avg Population"]    = df_display["Avg Population"].apply(lambda v: f"{v:,.0f}")
+df_display["Avg Population"] = df_display["Avg Population"].apply(lambda v: f"{v:,.0f}")
 
 st.dataframe(
     df_display,
@@ -324,9 +331,9 @@ st.divider()
 st.markdown(
     """
     <div class="narrative-hook">
-        The data makes the case: crime clusters in counties with the fewest resources 
-        to fight it. The <strong>B.A.S.E. program</strong> turns this analysis into action — 
-        Act 4 shows exactly how 3.1 million Colorado businesses were scored and ranked 
+        The data makes the case: crime clusters in counties with the fewest resources
+        to fight it. The <strong>B.A.S.E. program</strong> turns this analysis into action —
+        Act 4 shows exactly how 3.1 million Colorado businesses were scored and ranked
         for security subsidy eligibility.
     </div>
     """,

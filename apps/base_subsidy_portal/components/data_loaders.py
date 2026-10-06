@@ -13,11 +13,12 @@ Usage:
 
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from snowflake.snowpark import Session
-from snowflake.snowpark.functions import col, count, lit, upper, avg, sum as sf_sum
+from snowflake.snowpark.functions import col, count, lit, upper
 from snowflake.snowpark.types import StringType
 
 # ---------------------------------------------------------------------------
@@ -27,25 +28,34 @@ from snowflake.snowpark.types import StringType
 DB = "COLORADO_CRIME_DB_PROD"
 GOLD = f"{DB}.GOLD"
 
-FCT_CRIMES            = f"{GOLD}.FCT_CRIMES"
-FCT_INCOME_POP        = f"{GOLD}.FCT_INCOME_POPULATION"
-FCT_BUSINESS_TIERS    = f"{GOLD}.FCT_BUSINESS_SUBSIDY_TIERS"
-DIM_GEOGRAPHY         = f"{GOLD}.DIM_GEOGRAPHY"
-DIM_OFFENSE           = f"{GOLD}.DIM_OFFENSE"
-DIM_DATE              = f"{GOLD}.DIM_DATE"
-DIM_AGENCY            = f"{GOLD}.DIM_AGENCY"
+FCT_CRIMES = f"{GOLD}.FCT_CRIMES"
+FCT_INCOME_POP = f"{GOLD}.FCT_INCOME_POPULATION"
+FCT_BUSINESS_TIERS = f"{GOLD}.FCT_BUSINESS_SUBSIDY_TIERS"
+DIM_GEOGRAPHY = f"{GOLD}.DIM_GEOGRAPHY"
+DIM_OFFENSE = f"{GOLD}.DIM_OFFENSE"
+DIM_DATE = f"{GOLD}.DIM_DATE"
+DIM_AGENCY = f"{GOLD}.DIM_AGENCY"
 
-RPT_TIER_LOOKUP       = f"{GOLD}.RPT_BUSINESS_TIER_LOOKUP"
-RPT_AGENCY_BASELINE   = f"{GOLD}.RPT_COUNTY_AGENCY_CRIME_BASELINE"
-RPT_CITY_TIME_TRENDS  = f"{GOLD}.RPT_CITY_TIME_TRENDS"
-RPT_CITY_TOD_CRIMES   = f"{GOLD}.RPT_CITY_TIME_OF_DAY_CRIMES"
+RPT_TIER_LOOKUP = f"{GOLD}.RPT_BUSINESS_TIER_LOOKUP"
+RPT_AGENCY_BASELINE = f"{GOLD}.RPT_COUNTY_AGENCY_CRIME_BASELINE"
+RPT_CITY_TIME_TRENDS = f"{GOLD}.RPT_CITY_TIME_TRENDS"
+RPT_CITY_TOD_CRIMES = f"{GOLD}.RPT_CITY_TIME_OF_DAY_CRIMES"
 RPT_CITY_DEMOGRAPHICS = f"{GOLD}.RPT_CITY_CRIME_DEMOGRAPHICS"
 
 PUBLIC_COLUMNS = [
-    "ENTITY_ID", "ENTITY_NAME", "PRINCIPAL_CITY", "PRINCIPAL_COUNTY",
-    "PRINCIPAL_ZIP", "ENTITY_TYPE", "FORMATION_DATE", "ENTITY_STATUS",
-    "COMPOSITE_TIER", "SUBSIDY_TIER_LABEL", "COMPLIANCE_STATUS",
-    "QUALIFIES_FOR_SUBSIDY", "SUBSIDY_MESSAGE",
+    "ENTITY_ID",
+    "ENTITY_NAME",
+    "PRINCIPAL_CITY",
+    "PRINCIPAL_COUNTY",
+    "PRINCIPAL_ZIP",
+    "ENTITY_TYPE",
+    "FORMATION_DATE",
+    "ENTITY_STATUS",
+    "COMPOSITE_TIER",
+    "SUBSIDY_TIER_LABEL",
+    "COMPLIANCE_STATUS",
+    "QUALIFIES_FOR_SUBSIDY",
+    "SUBSIDY_MESSAGE",
 ]
 MAX_NAME_MATCHES = 100
 
@@ -53,6 +63,7 @@ MAX_NAME_MATCHES = 100
 # ---------------------------------------------------------------------------
 # Session
 # ---------------------------------------------------------------------------
+
 
 @st.cache_resource
 def get_session() -> Session:
@@ -88,31 +99,32 @@ def get_session() -> Session:
         encryption_algorithm=serialization.NoEncryption(),
     )
 
-    return Session.builder.configs({
-        "account":   sf["account"],
-        "user":      sf["user"],
-        "private_key": pkcs8_der,
-        "role":      sf.get("role"),
-        "warehouse": sf.get("warehouse"),
-        "database":  sf.get("database"),
-        "schema":    sf.get("schema"),
-    }).create()
+    return Session.builder.configs(
+        {
+            "account": sf["account"],
+            "user": sf["user"],
+            "private_key": pkcs8_der,
+            "role": sf.get("role"),
+            "warehouse": sf.get("warehouse"),
+            "database": sf.get("database"),
+            "schema": sf.get("schema"),
+        }
+    ).create()
 
 
 # ---------------------------------------------------------------------------
 # Landing page — headline stats
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="1h", show_spinner=False)
 def load_headline_stats(_session: Session) -> dict:
     """4 top-line KPI cards for the landing page."""
-    total_crimes = _session.sql(
-        f"SELECT COUNT(*) AS n FROM {FCT_CRIMES}"
-    ).collect()[0]["N"]
+    total_crimes = _session.sql(f"SELECT COUNT(*) AS n FROM {FCT_CRIMES}").collect()[0]["N"]
 
-    total_businesses = _session.sql(
-        f"SELECT COUNT(*) AS n FROM {RPT_TIER_LOOKUP}"
-    ).collect()[0]["N"]
+    total_businesses = _session.sql(f"SELECT COUNT(*) AS n FROM {RPT_TIER_LOOKUP}").collect()[0][
+        "N"
+    ]
 
     qualifying = _session.sql(
         f"SELECT COUNT(*) AS n FROM {RPT_TIER_LOOKUP} WHERE QUALIFIES_FOR_SUBSIDY = TRUE"
@@ -137,8 +149,9 @@ def load_headline_stats(_session: Session) -> dict:
 # Act 1 — The Landscape
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_crime_density_by_county(_session: Session) -> "pd.DataFrame":
+def load_crime_density_by_county(_session: Session) -> pd.DataFrame:
     """
     County KPI 7: crimes per 100K residents.
     Returns county_name (title case), fips_code, crime_rate_per_100k, total_crimes.
@@ -163,9 +176,9 @@ def load_crime_density_by_county(_session: Session) -> "pd.DataFrame":
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_crime_categories_by_county(_session: Session) -> "pd.DataFrame":
+def load_crime_categories_by_county(_session: Session) -> pd.DataFrame:
     """
-    County KPI 5: top offense categories per county (total crimes by county × category).
+    County KPI 5: top offense categories per county (total crimes by county x category).
     """
     df = _session.sql(f"""
         SELECT
@@ -184,7 +197,7 @@ def load_crime_categories_by_county(_session: Session) -> "pd.DataFrame":
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_crime_type_distribution_by_county(_session: Session) -> "pd.DataFrame":
+def load_crime_type_distribution_by_county(_session: Session) -> pd.DataFrame:
     """
     County KPI 10: Property / Person / Society share per county.
     """
@@ -211,9 +224,10 @@ def load_crime_type_distribution_by_county(_session: Session) -> "pd.DataFrame":
 # Act 2 — The Patterns (city marts + county seasonal)
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_county_monthly_crimes(_session: Session) -> "pd.DataFrame":
-    """County KPI 6: total crimes by county × month for the seasonal heatmap."""
+def load_county_monthly_crimes(_session: Session) -> pd.DataFrame:
+    """County KPI 6: total crimes by county x month for the seasonal heatmap."""
     df = _session.sql(f"""
         SELECT
             g.county_name,
@@ -232,19 +246,19 @@ def load_county_monthly_crimes(_session: Session) -> "pd.DataFrame":
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_city_time_trends(_session: Session) -> "pd.DataFrame":
+def load_city_time_trends(_session: Session) -> pd.DataFrame:
     """City KPIs 1 & 6: from rpt_city_time_trends mart."""
     return _session.table(RPT_CITY_TIME_TRENDS).to_pandas()
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_city_time_of_day_crimes(_session: Session) -> "pd.DataFrame":
+def load_city_time_of_day_crimes(_session: Session) -> pd.DataFrame:
     """City KPIs 2 & 4: top 3 day/night crimes from rpt_city_time_of_day_crimes."""
     return _session.table(RPT_CITY_TOD_CRIMES).to_pandas()
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_city_crime_demographics(_session: Session) -> "pd.DataFrame":
+def load_city_crime_demographics(_session: Session) -> pd.DataFrame:
     """City KPIs 3 & 5: avg offender age + crime distribution from rpt_city_crime_demographics."""
     return _session.table(RPT_CITY_DEMOGRAPHICS).to_pandas()
 
@@ -253,8 +267,9 @@ def load_city_crime_demographics(_session: Session) -> "pd.DataFrame":
 # Act 3 — The Disparity
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_income_population_by_county(_session: Session) -> "pd.DataFrame":
+def load_income_population_by_county(_session: Session) -> pd.DataFrame:
     """
     County KPIs 2, 3, 4, 8, 9: annual income + population + growth % per county.
     """
@@ -276,7 +291,7 @@ def load_income_population_by_county(_session: Session) -> "pd.DataFrame":
 
 
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_crime_vs_income(_session: Session) -> "pd.DataFrame":
+def load_crime_vs_income(_session: Session) -> pd.DataFrame:
     """
     County KPI 9: crime rate per 100K vs median household income (for scatter plot).
     Aggregated at county level across all years.
@@ -304,8 +319,9 @@ def load_crime_vs_income(_session: Session) -> "pd.DataFrame":
 # Act 4 — B.A.S.E. Program (business portal)
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="15m", show_spinner=False)
-def load_tier_breakdown(_session: Session) -> "pd.DataFrame":
+def load_tier_breakdown(_session: Session) -> pd.DataFrame:
     """Business count by composite tier."""
     return (
         _session.table(RPT_TIER_LOOKUP)
@@ -317,7 +333,7 @@ def load_tier_breakdown(_session: Session) -> "pd.DataFrame":
 
 
 @st.cache_data(ttl="15m", show_spinner=False)
-def load_eligible_by_county(_session: Session) -> "pd.DataFrame":
+def load_eligible_by_county(_session: Session) -> pd.DataFrame:
     """Notification-eligible business counts by county."""
     df = (
         _session.table(RPT_TIER_LOOKUP)
@@ -335,14 +351,10 @@ def load_eligible_by_county(_session: Session) -> "pd.DataFrame":
 @st.cache_data(ttl="15m", show_spinner=False)
 def load_eligible_total(_session: Session) -> int:
     """Total notification-eligible businesses."""
-    return (
-        _session.table(RPT_TIER_LOOKUP)
-        .filter(col("NOTIFICATION_ELIGIBLE") == lit(True))
-        .count()
-    )
+    return _session.table(RPT_TIER_LOOKUP).filter(col("NOTIFICATION_ELIGIBLE") == lit(True)).count()
 
 
-def search_businesses(_session: Session, search_term: str) -> "pd.DataFrame | None":
+def search_businesses(_session: Session, search_term: str) -> pd.DataFrame | None:
     """Search businesses by entity ID or name."""
     term = search_term.strip()
     if not term:
@@ -368,8 +380,9 @@ def search_businesses(_session: Session, search_term: str) -> "pd.DataFrame | No
 # Act 5 — The Impact
 # ---------------------------------------------------------------------------
 
+
 @st.cache_data(ttl="1h", show_spinner=False)
-def load_agency_crime_baseline(_session: Session) -> "pd.DataFrame":
+def load_agency_crime_baseline(_session: Session) -> pd.DataFrame:
     """County KPI 1: agency crime baselines + 5% reduction targets."""
     df = _session.table(RPT_AGENCY_BASELINE).to_pandas()
     df["COUNTY_NAME"] = df["COUNTY_NAME"].str.title()
