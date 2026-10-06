@@ -140,7 +140,6 @@ def fetch_business_entity_data(date: str, api_token: str) -> list[dict]:
         f"https://data.colorado.gov/resource/4ykn-tg5h.json"
         f"?$$app_token={api_token}"
         f"&entityformdate={formatted_date}"
-        f"&entitystatus=Good%20Standing"
         f"&principalstate=CO"
     )
 
@@ -179,8 +178,8 @@ def _raw_record_to_tuple(record: dict, source_date: str) -> tuple:
         record.get("jurisdictonofformation"),
         record.get("entitytype"),
         record.get("entityformdate"),
-        datetime.now(timezone.utc),              # _ingested_at: pipeline audit timestamp
-        source_date,                    # _source_date: logical execution date (YYYY-MM-DD)
+        datetime.now(timezone.utc),  # _ingested_at: pipeline audit timestamp
+        source_date,  # _source_date: logical execution date (YYYY-MM-DD)
     )
 
 
@@ -217,7 +216,6 @@ def land_raw_records(
 
     import os
 
-    import boto3
     import pandas as pd
 
     # Add metadata
@@ -232,26 +230,33 @@ def land_raw_records(
     df.to_parquet(parquet_file, index=False)
 
     # Upload to S3
-    s3_bucket = os.getenv("S3_BUCKET_NAME", "colorado-subsidy-lakehouse")
+    s3_bucket = os.getenv("S3_BUCKET_NAME", "colorado-subsidy-pipeline-data-dev")
     s3_key = f"raw/colorado_business_entities/source_date={source_date}/data.parquet"
-    s3_client = boto3.client("s3")
+    from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
+
+    # Upload to S3 via Airflow's aws_default connection (honours IAM/key auth
+    # configured in the Airflow UI rather than relying on env vars or ~/.aws/).
+    aws_hook = AwsBaseHook(aws_conn_id="aws_default", client_type="s3")
+    s3_client = aws_hook.get_client_type()
     s3_client.upload_file(parquet_file, s3_bucket, s3_key)
     log.info("Uploaded to S3: s3://%s/%s", s3_bucket, s3_key)
 
-    # COPY INTO Snowflake
+    # COPY INTO Snowflake from the external S3 stage.
+    # Using the relative stage path so the database context is resolved by
+    # SnowflakeHook from the connection, not hardcoded here.
     copy_sql = f"""
         COPY INTO {raw_table}
-        FROM @my_ext_stage/{s3_key}
+        FROM @"RAW"."RAW_CSV_STAGE"/{s3_key}
         FILE_FORMAT = (TYPE = PARQUET)
         MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
     """
     execute_sf_query(copy_sql, conn_id=conn_id)
     log.info(
         "Landed %d raw records into %s (source_date=%s) via COPY INTO",
-        len(raw_records), raw_table, source_date,
+        len(raw_records),
+        raw_table,
+        source_date,
     )
-
-
 
 
 # ── Failure alerting ───────────────────────────────────────────────────────────

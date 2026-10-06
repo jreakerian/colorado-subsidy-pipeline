@@ -9,7 +9,7 @@ from airflow.sdk import dag, task
 
 # ── Cosmos (dbt) ──────────────────────────────────────────────────────────────
 from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig
-from cosmos.profiles import SnowflakeUserPasswordProfileMapping
+from cosmos.profiles import SnowflakeEncryptedPrivateKeyFilePemProfileMapping
 
 # ── Project helpers ───────────────────────────────────────────────────────────
 from include.eakerian.business_entity_helpers import on_dag_failure
@@ -53,9 +53,15 @@ _FETCH_RETRY_ARGS: dict = {
 _profile_config = ProfileConfig(
     profile_name="colorado_subsidy_pipeline",
     target_name=DBT_TARGET,
-    profile_mapping=SnowflakeUserPasswordProfileMapping(
+    profile_mapping=SnowflakeEncryptedPrivateKeyFilePemProfileMapping(
         conn_id=SNOWFLAKE_CONN_ID,
-        profile_args={"schema": SCHEMA},
+        profile_args={
+            "schema": SCHEMA,
+            # dbt needs TRANSFORMER_ROLE to create schemas, views, and tables
+            # across Silver and Gold layers. LOADER_ROLE is restricted to RAW
+            # ingestion only and must not be used for transformations.
+            "role": "TRANSFORMER_ROLE",
+        },
     ),
 )
 
@@ -99,7 +105,7 @@ def on_task_failure(context: dict) -> None:
         "execution_timeout": timedelta(hours=1),
         **_DEFAULT_RETRY_ARGS,
     },
-    start_date=datetime(2025, 10, 8, tzinfo=timezone.utc),
+    start_date=datetime(2026, 10, 4, tzinfo=timezone.utc),
     max_active_runs=1,
     schedule="0 13 * * *",  # 1 PM UTC ≈ 7 AM MT
     catchup=False,
@@ -157,9 +163,13 @@ def business_entity_dag():
             conn_id=SNOWFLAKE_CONN_ID,
             return_results=True,
         )
-        # execute_sf_query is assumed to return the first row of the result set.
-        row_count = result[0] if isinstance(result, (list, tuple)) else result
-        if not row_count:
+        # execute_sf_query is assumed to return a list of tuples like [(0,)]
+        row_count = (
+            result[0][0]
+            if isinstance(result, (list, tuple)) and isinstance(result[0], (list, tuple))
+            else result
+        )
+        if row_count == 0:
             raise ValueError(
                 f"Zero rows landed in {RAW_TABLE} for _source_date = '{yesterday}'. "
                 "The API may have returned an empty response or the load failed. "
@@ -194,9 +204,12 @@ def business_entity_dag():
     )
 
     # ── Dependency chain ──────────────────────────────────────────────────
-    # {{ ds }} = logical_date formatted as YYYY-MM-DD.
-    # Passed as an explicit argument so the date is visible in task logs and
-    # the Airflow UI without needing to open the source code.
+    # {{ ds }} = the logical date formatted as YYYY-MM-DD.
+    # On scheduled runs, Airflow automatically sets this to yesterday (the start
+    # of the previous data interval), so the API always receives yesterday's date.
+    # On backfills, this becomes whichever historical date is being replayed.
+    # For manual triggers, use "Trigger DAG w/ config" and set the logical date
+    # to yesterday manually to avoid a zero-row API response.
     yesterday = "{{ ds }}"
 
     (

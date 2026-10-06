@@ -66,20 +66,57 @@ resource "terraform_data" "stage_exists_guard" {
 }
 
 # ── TABLE OWNERSHIP GRANTS ───────────────────────────────────────────────────────
-resource "snowflake_grant_ownership" "fct_business_subsidy_tiers" {
+# dbt uses CREATE OR REPLACE TABLE/VIEW, which requires OWNERSHIP on the object.
+# Granting OWNERSHIP at the schema level (all + future) ensures TRANSFORMER_ROLE
+# can recreate any model without manual per-table grants as the project grows.
+#
+# COPY CURRENT GRANTS preserves downstream SELECT grants (e.g. ANALYST_ROLE)
+# when ownership changes hands.
+
+resource "snowflake_grant_ownership" "transformer_owns_silver_tables" {
   account_role_name = snowflake_account_role.transformer_role.name
   on {
-    object_type = "TABLE"
-    object_name = "\"${var.db_name}\".\"${var.gold_schema_name}\".\"FCT_BUSINESS_SUBSIDY_TIERS\""
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${var.db_name}\".\"${var.silver_schema_name}\""
+    }
   }
   outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_silver]
 }
 
-resource "snowflake_grant_ownership" "rpt_business_tier_lookup" {
+resource "snowflake_grant_ownership" "transformer_owns_silver_views" {
   account_role_name = snowflake_account_role.transformer_role.name
   on {
-    object_type = "TABLE"
-    object_name = "\"${var.db_name}\".\"${var.gold_schema_name}\".\"RPT_BUSINESS_TIER_LOOKUP\""
+    all {
+      object_type_plural = "VIEWS"
+      in_schema          = "\"${var.db_name}\".\"${var.silver_schema_name}\""
+    }
   }
   outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_silver]
+}
+
+resource "snowflake_grant_ownership" "transformer_owns_gold_tables" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${var.db_name}\".\"${var.gold_schema_name}\""
+    }
+  }
+  outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_gold]
+}
+
+resource "snowflake_grant_ownership" "transformer_owns_gold_views" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    all {
+      object_type_plural = "VIEWS"
+      in_schema          = "\"${var.db_name}\".\"${var.gold_schema_name}\""
+    }
+  }
+  outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_gold]
 }
