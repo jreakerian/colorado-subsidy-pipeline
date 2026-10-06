@@ -4,9 +4,13 @@
 --           and the production source table that dbt reads from.
 --
 -- Placeholders replaced by the Airflow task at runtime:
---   {raw_table}   → e.g. RAW_DEV.colorado_business_entities_raw
---   {prod_table}  → e.g. RAW_DEV.colorado_business_entities
+--   {raw_table}   → e.g. RAW.colorado_business_entities_raw
+--   {prod_table}  → e.g. RAW.colorado_business_entities
 --   {yesterday}   → YYYY-MM-DD injected via {{ ds }} macro
+--
+-- NOTE: _ingested_at and _source_date are metadata columns that live ONLY
+-- in the bronze raw table. The production table (which dbt reads from) holds
+-- only the business entity fields — no pipeline metadata columns.
 
 MERGE INTO {prod_table} AS target
 USING (
@@ -22,8 +26,7 @@ USING (
         entitystatus,
         jurisdictonofformation,
         entitytype,
-        entityformdate,
-        _ingested_at
+        entityformdate
     FROM {raw_table}
     WHERE _source_date = '{yesterday}'
       AND entityid IS NOT NULL          -- guard: skip rows with no natural key
@@ -42,8 +45,7 @@ WHEN NOT MATCHED THEN
         entitystatus,
         jurisdictonofformation,
         entitytype,
-        entityformdate,
-        _ingested_at
+        entityformdate
     )
     VALUES (
         source.entityid,
@@ -57,20 +59,18 @@ WHEN NOT MATCHED THEN
         source.entitystatus,
         source.jurisdictonofformation,
         source.entitytype,
-        source.entityformdate,
-        source._ingested_at
+        source.entityformdate
     )
 WHEN MATCHED THEN
     UPDATE SET
-        target.entityname = source.entityname,
-        target.principaladdress1 = source.principaladdress1,
-        target.principaladdress2 = source.principaladdress2,
-        target.principalcity = source.principalcity,
-        target.principalstate = source.principalstate,
-        target.principalzipcode = source.principalzipcode,
-        target.principalcountry = source.principalcountry,
-        target.entitystatus = source.entitystatus,
+        target.entityname            = source.entityname,
+        target.principaladdress1     = source.principaladdress1,
+        target.principaladdress2     = source.principaladdress2,
+        target.principalcity         = source.principalcity,
+        target.principalstate        = source.principalstate,
+        target.principalzipcode      = source.principalzipcode,
+        target.principalcountry      = source.principalcountry,
+        target.entitystatus          = source.entitystatus,
         target.jurisdictonofformation = source.jurisdictonofformation,
-        target.entitytype = source.entitytype,
-        target.entityformdate = source.entityformdate,
-        target._ingested_at = source._ingested_at
+        target.entitytype            = source.entitytype,
+        target.entityformdate        = source.entityformdate;

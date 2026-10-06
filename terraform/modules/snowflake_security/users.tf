@@ -26,6 +26,14 @@ resource "snowflake_grant_account_role" "airflow_loader_grant" {
   user_name = snowflake_service_user.airflow_service.name
 }
 
+# Grant TRANSFORMER_ROLE to AIRFLOW_SERVICE as a secondary role so that
+# Astronomer Cosmos can switch to it when running dbt transformations.
+# AIRFLOW_SERVICE default role remains LOADER_ROLE for ingestion tasks.
+resource "snowflake_grant_account_role" "airflow_transformer_grant" {
+  role_name = snowflake_account_role.transformer_role.name
+  user_name = snowflake_service_user.airflow_service.name
+}
+
 # Grant TRANSFORMER_ROLE to the dbt service user
 resource "snowflake_grant_account_role" "dbt_transformer_grant" {
   role_name = snowflake_account_role.transformer_role.name
