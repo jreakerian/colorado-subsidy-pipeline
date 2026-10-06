@@ -133,7 +133,7 @@ acts = [
 ]
 
 cols = st.columns(len(acts))
-for col_obj, (icon, title, desc) in zip(cols, acts):
+for col_obj, (icon, title, desc) in zip(cols, acts, strict=False):
     with col_obj:
         st.markdown(
             f"""
