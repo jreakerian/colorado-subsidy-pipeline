@@ -29,9 +29,16 @@ sys.modules.setdefault("airflow.providers", airflow_stub)
 sys.modules.setdefault("airflow.providers.snowflake", airflow_stub)
 sys.modules.setdefault("airflow.providers.snowflake.hooks", airflow_stub)
 sys.modules.setdefault("airflow.providers.snowflake.hooks.snowflake", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws.hooks", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws.hooks.base_aws", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws.hooks", airflow_stub)
+sys.modules.setdefault("airflow.providers.amazon.aws.hooks.base_aws", airflow_stub)
 
 import include.eakerian.business_entity_helpers as helpers  # noqa: E402
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # fetch_business_entity_data
@@ -47,7 +54,7 @@ class TestFetchBusinessEntityData:
         mock_response = MagicMock()
         mock_response.json.return_value = [
             {"entityid": "1001", "entityname": "Acme Corp", "entitystatus": "Good Standing"},
-            {"entityid": "1002", "entityname": "Beta LLC",  "entitystatus": "Good Standing"},
+            {"entityid": "1002", "entityname": "Beta LLC", "entitystatus": "Good Standing"},
         ]
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
@@ -77,6 +84,7 @@ class TestFetchBusinessEntityData:
     def test_raises_on_network_error(self, mock_get):
         """Network failure must propagate so Airflow can retry the task."""
         import requests as req_lib
+
         mock_get.side_effect = req_lib.ConnectionError("Connection refused")
 
         with pytest.raises(req_lib.ConnectionError):
@@ -86,6 +94,7 @@ class TestFetchBusinessEntityData:
     def test_raises_on_http_error(self, mock_get):
         """HTTP 4xx/5xx must propagate via raise_for_status."""
         import requests as req_lib
+
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = req_lib.HTTPError("429 Too Many Requests")
         mock_get.return_value = mock_response
@@ -121,11 +130,11 @@ class TestRawRecordToTuple:
 
         result = helpers._raw_record_to_tuple(record, source_date="2024-01-15")
 
-        assert result[0] == "9999"           # entityid
-        assert result[1] == "Test Corp"      # entityname
-        assert result[4] == "Denver"         # principalcity
+        assert result[0] == "9999"  # entityid
+        assert result[1] == "Test Corp"  # entityname
+        assert result[4] == "Denver"  # principalcity
         assert result[8] == "Good Standing"  # entitystatus
-        assert result[13] == "2024-01-15"    # _source_date is always last
+        assert result[13] == "2024-01-15"  # _source_date is always last
 
     def test_missing_optional_fields_default_to_none(self):
         """Missing keys gracefully become None — no KeyError raised."""
@@ -134,7 +143,7 @@ class TestRawRecordToTuple:
         result = helpers._raw_record_to_tuple(record, source_date="2024-02-01")
 
         assert result[0] == "0001"
-        assert result[2] is None   # principaladdress1 missing → None
+        assert result[2] is None  # principaladdress1 missing → None
         assert result[13] == "2024-02-01"
 
     def test_ingested_at_is_utc_datetime(self):
@@ -160,6 +169,7 @@ class TestLandRawRecords:
     def test_skips_when_no_records(self, caplog):
         """Empty record list must short-circuit — no S3 or Snowflake calls."""
         import logging
+
         with caplog.at_level(logging.INFO):
             helpers.land_raw_records(
                 raw_records=[],
@@ -168,26 +178,23 @@ class TestLandRawRecords:
             )
         assert "skipping" in caplog.text.lower()
 
-    def test_uploads_to_s3_and_calls_copy_into(self):
+    @patch("pandas.DataFrame")
+    @patch("airflow.providers.amazon.aws.hooks.base_aws.AwsBaseHook")
+    @patch("include.eakerian.business_entity_helpers.execute_sf_query")
+    def test_uploads_to_s3_and_calls_copy_into(self, mock_exec, mock_aws_hook, mock_df_class):
         """With valid records, must: write parquet → upload S3 → execute COPY INTO."""
         mock_s3_client = MagicMock()
+        mock_aws_hook.return_value.get_client_type.return_value = mock_s3_client
         mock_df = MagicMock()
-
-        mock_boto3 = MagicMock()
-        mock_boto3.client.return_value = mock_s3_client
-
-        mock_pd = MagicMock()
-        mock_pd.DataFrame.return_value = mock_df
+        mock_df_class.return_value = mock_df
 
         records = [{"entityid": "1", "entityname": "Corp A"}]
 
-        with patch.dict("sys.modules", {"boto3": mock_boto3, "pandas": mock_pd}), \
-             patch("include.eakerian.business_entity_helpers.execute_sf_query") as mock_exec:
-            helpers.land_raw_records(
-                raw_records=records,
-                raw_table="RAW_DEV.PUBLIC.TABLE",
-                source_date="2024-01-15",
-            )
+        helpers.land_raw_records(
+            raw_records=records,
+            raw_table="RAW_DEV.PUBLIC.TABLE",
+            source_date="2024-01-15",
+        )
 
         mock_df.to_parquet.assert_called_once()
         mock_s3_client.upload_file.assert_called_once()

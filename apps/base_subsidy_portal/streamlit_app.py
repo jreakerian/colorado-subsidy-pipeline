@@ -1,452 +1,228 @@
 """
-Colorado B.A.S.E. Subsidy Checker
-Business Assistance for Security Enhancements — public lookup + OEDIT admin view.
+Colorado B.A.S.E. Analytics Portal — Landing Page
 
-Data source: COLORADO_CRIME_DB_PROD.GOLD.RPT_BUSINESS_TIER_LOOKUP
-All data access goes through Snowpark (session.table / DataFrame API).
+Business Assistance for Security Enhancements (B.A.S.E.)
+A data-driven portfolio project demonstrating an end-to-end data engineering pipeline:
+  9M+ crime records → Airflow → Snowflake → dbt → Streamlit + Cortex AI
 
-Authentication: RSA key-pair (bypasses MFA for service accounts).
-  - Local:  reads private_key_file path from [connections.snowflake] in secrets.toml
-  - Cloud:  reads private_key PEM string from Streamlit Cloud Secrets Manager
+Navigation: Use the sidebar to explore the 5-act data narrative and AI features.
 """
 
 import streamlit as st
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from snowflake.snowpark import Session
-from snowflake.snowpark.functions import col, count, lit, upper
-from snowflake.snowpark.types import StringType
+from components.data_loaders import get_session, load_headline_stats
+from components.styles import inject_css
 
 # ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-TIER_TABLE = "COLORADO_CRIME_DB_PROD.GOLD.RPT_BUSINESS_TIER_LOOKUP"
-
-# Columns surfaced to the public lookup UI. Snowflake column names are uppercase.
-PUBLIC_COLUMNS = [
-    "ENTITY_ID",
-    "ENTITY_NAME",
-    "PRINCIPAL_CITY",
-    "PRINCIPAL_COUNTY",
-    "PRINCIPAL_ZIP",
-    "ENTITY_TYPE",
-    "FORMATION_DATE",
-    "COMPOSITE_TIER",
-    "SUBSIDY_TIER_LABEL",
-    "QUALIFIES_FOR_SUBSIDY",
-    "SUBSIDY_MESSAGE",
-]
-
-# Cap name-search result sets so a broad search cannot pull back the whole table.
-MAX_NAME_MATCHES = 100
-
-
-# ---------------------------------------------------------------------------
-# Page config + Snowpark session
+# Page config
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Colorado B.A.S.E. Subsidy Checker",
-    page_icon=":material/verified_user:",
+    page_title="Colorado B.A.S.E. Analytics Portal",
+    page_icon="🏔️",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
+inject_css()
 
 # ---------------------------------------------------------------------------
-# RSA Key-Pair Connection (bypasses MFA for service accounts)
+# Session
 # ---------------------------------------------------------------------------
 
+session = get_session()
 
-@st.cache_resource(ttl=3300)  # 55 min — recreate before Snowflake's JWT expires
-def _get_session() -> Session:
+# ---------------------------------------------------------------------------
+# Hero section
+# ---------------------------------------------------------------------------
+
+st.markdown(
     """
-    Build a Snowpark Session using RSA key-pair authentication.
+    <div style="padding: 8px 0 4px 0;">
+        <div style="
+            display: inline-block;
+            background: #FF6B35;
+            color: #0D1117;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        ">Portfolio Project · Colorado OEDIT</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    Supports two modes automatically:
-      1. Streamlit Cloud: secrets contain `private_key` (PEM string)
-      2. Local dev:       secrets contain `private_key_file` (path to .pem)
-    """
-    sf = st.secrets["connections"]["snowflake"]
+st.title("Colorado B.A.S.E. Analytics Portal")
+st.markdown(
+    "**Business Assistance for Security Enhancements** — "
+    "A fictional but data-grounded Colorado state program that allocates "
+    "security subsidies to businesses using 23 years of crime, income, and "
+    "population data."
+)
 
-    # --- Resolve the private key bytes ---
-    if "private_key" in sf:
-        # Cloud mode: PEM string stored directly in Streamlit Secrets Manager
-        pem_bytes = sf["private_key"].encode("utf-8")
-    elif "private_key_file" in sf:
-        # Local mode: path to .pem file on disk
-        with open(sf["private_key_file"], "rb") as f:
-            pem_bytes = f.read()
-    else:
-        raise ValueError(
-            "Snowflake RSA auth requires either `private_key` (PEM string) or "
-            "`private_key_file` (path) in [connections.snowflake] secrets."
+st.divider()
+
+# ---------------------------------------------------------------------------
+# Headline KPI cards
+# ---------------------------------------------------------------------------
+
+with st.spinner("Loading pipeline statistics..."):
+    try:
+        stats = load_headline_stats(session)
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric(
+            "Crime Incidents Processed",
+            f"{stats['total_crimes']:,}",
+            help="Total rows ingested from 2 Colorado crime datasets (1997-2020)",
         )
-
-    passphrase = sf.get("private_key_passphrase")
-    passphrase_bytes = passphrase.encode("utf-8") if passphrase else None
-
-    private_key_obj = serialization.load_pem_private_key(
-        pem_bytes,
-        password=passphrase_bytes,
-        backend=default_backend(),
-    )
-    pkcs8_der = private_key_obj.private_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-
-    connection_params = {
-        "account": sf["account"],
-        "user": sf["user"],
-        "private_key": pkcs8_der,
-        "role": sf.get("role"),
-        "warehouse": sf.get("warehouse"),
-        "database": sf.get("database"),
-        "schema": sf.get("schema"),
-        "client_session_keep_alive": True,  # heartbeat during active use
-    }
-
-    return Session.builder.configs(connection_params).create()
-
-
-session = _get_session()
-
-
-# ---------------------------------------------------------------------------
-# Snowpark data access
-# ---------------------------------------------------------------------------
-
-
-def search_businesses(search_term: str):
-    """
-    Look up businesses by ENTITY_ID (exact match) or ENTITY_NAME (case-insensitive
-    contains). Returns a Pandas DataFrame.
-
-    ENTITY_ID is stored as a NUMBER in Snowflake, so it is cast to VARCHAR before
-    comparison — that lets a single text box serve both search modes without the
-    caller needing to know the underlying type.
-    """
-    term = search_term.strip()
-    if not term:
-        return None
-
-    base = session.table(TIER_TABLE).select(*PUBLIC_COLUMNS)
-
-    # Exact ID match first — an entity ID uniquely identifies one business.
-    if term.isdigit():
-        id_matches = base.filter(col("ENTITY_ID").cast(StringType()) == lit(term))
-        results = id_matches.limit(MAX_NAME_MATCHES + 1).to_pandas()
-        if not results.empty:
-            return results
-
-    # Fall back to a name search. Snowpark's Column has no ilike(), so fold both
-    # sides to upper case and use like() for a case-insensitive "contains" match.
-    # The search term is passed as a bound literal, never interpolated into SQL.
-    name_matches = (
-        base.filter(upper(col("ENTITY_NAME")).like(lit(f"%{term.upper()}%")))
-        .sort(col("ENTITY_NAME").asc())
-        .limit(MAX_NAME_MATCHES + 1)
-    )
-    return name_matches.to_pandas()
-
-
-@st.cache_data(ttl="15m", show_spinner=False)
-def load_eligible_total() -> int:
-    """Total count of businesses flagged NOTIFICATION_ELIGIBLE."""
-    eligible = session.table(TIER_TABLE).filter(col("NOTIFICATION_ELIGIBLE") == lit(True))
-    return eligible.count()
-
-
-@st.cache_data(ttl="15m", show_spinner=False)
-def load_eligible_by_county():
-    """
-    Notification-eligible business counts grouped by PRINCIPAL_COUNTY.
-    Cached as Pandas so the aggregation runs in Snowflake once per TTL window.
-    """
-    by_county = (
-        session.table(TIER_TABLE)
-        .filter(col("NOTIFICATION_ELIGIBLE") == lit(True))
-        .filter(col("PRINCIPAL_COUNTY").is_not_null())
-        .group_by(col("PRINCIPAL_COUNTY"))
-        .agg(count(lit(1)).alias("ELIGIBLE_BUSINESSES"))
-        .sort(col("ELIGIBLE_BUSINESSES").desc())
-    )
-    counts = by_county.to_pandas()
-    # County values are stored lowercase in the source table; title-case for display.
-    counts["PRINCIPAL_COUNTY"] = counts["PRINCIPAL_COUNTY"].str.title()
-    return counts
-
-
-@st.cache_data(ttl="15m", show_spinner=False)
-def load_tier_breakdown():
-    """Business counts per subsidy tier, for the admin overview."""
-    by_tier = (
-        session.table(TIER_TABLE)
-        .group_by(col("COMPOSITE_TIER"), col("SUBSIDY_TIER_LABEL"))
-        .agg(count(lit(1)).alias("BUSINESSES"))
-        .sort(col("COMPOSITE_TIER").desc())
-    )
-    return by_tier.to_pandas()
-
-
-def clear_admin_caches() -> None:
-    """Drop memoized admin aggregates so grant officers can force a refresh."""
-    load_eligible_total.clear()
-    load_eligible_by_county.clear()
-    load_tier_breakdown.clear()
-
-
-# ---------------------------------------------------------------------------
-# Rendering helpers
-# ---------------------------------------------------------------------------
-
-
-def render_single_result(row) -> None:
-    """Render the detail card for one matched business."""
-    st.subheader(row["ENTITY_NAME"])
-
-    left, middle, right = st.columns(3)
-    left.metric("City", row["PRINCIPAL_CITY"] or "—")
-    middle.metric("County", row["PRINCIPAL_COUNTY"] or "—")
-    right.metric("Entity ID", str(row["ENTITY_ID"]))
-
-    detail_a, detail_b, detail_c = st.columns(3)
-    detail_a.markdown(f"**Entity type**  \n{row['ENTITY_TYPE'] or '—'}")
-    detail_b.markdown(f"**ZIP code**  \n{row['PRINCIPAL_ZIP'] or '—'}")
-    detail_c.markdown(f"**Formation date**  \n{row['FORMATION_DATE'] or '—'}")
-
-    st.divider()
-
-    # Prominent tier label — this is the headline number for the business owner.
-    qualifies = bool(row["QUALIFIES_FOR_SUBSIDY"])
-    tier_label = row["SUBSIDY_TIER_LABEL"] or "Tier not assigned"
-    tier_color = "green" if qualifies else "gray"
-    st.markdown(f"### :{tier_color}[{tier_label}]")
-
-    composite_tier = row.get("COMPOSITE_TIER")
-    if composite_tier == 1:
-        st.markdown("""**Annual Subsidy:** $1,000
-**Included Benefits:**
-- $1,000 subsidy for security systems
-- Discounted installation services
-- Access to a directory of approved vendors
-- Basic online support and troubleshooting
-- Crime prevention best practices
-- Marketing materials and badges""")
-    elif composite_tier == 2:
-        st.markdown("""**Annual Subsidy:** $1,500
-**Included Benefits:**
-- $1,500 subsidy for security systems
-- Free installation or subsidized installation
-- One-time training on security systems
-- 24/7 support and on-site repairs
-- Extended warranty (1 year)
-- Vendor discounts for third-party services
-- Marketing and social media promotion
-- Referral program for future subsidies""")
-    elif composite_tier == 3:
-        st.markdown("""**Annual Subsidy:** $2,000
-**Included Benefits:**
-- $2,000 subsidy for security systems
-- Free premium installation & consultations
-- 24/7 priority support
-- Cybersecurity service discounts
-- Free annual security audit
-- Monitoring service discounts
-- Extended warranty (2 years)
-- Performance-based incentives""")
-    elif composite_tier == 4:
-        st.markdown("""**Annual Subsidy:** $2,500
-**Included Benefits:**
-- $2,500 subsidy for security systems
-- Full-service custom installations
-- Premium 24/7 support with on-site assistance
-- Comprehensive cybersecurity integration
-- 3-year extended warranty and maintenance
-- Priority access to top-tier vendors
-- Annual security reviews""")
-
-    message = row["SUBSIDY_MESSAGE"] or "No eligibility message is available for this business."
-    if qualifies:
-        st.success(message, icon=":material/check_circle:")
-    else:
-        st.info(message, icon=":material/info:")
-
-    if qualifies:
-        st.caption(
-            "Next step: contact the Colorado Office of Economic Development and "
-            "International Trade (OEDIT) to begin your subsidy application. Have "
-            "your entity ID ready."
+        c2.metric(
+            "Counties Analyzed",
+            f"{stats['counties']}",
+            help="All 64 Colorado counties covered",
         )
-
-
-def render_public_lookup() -> None:
-    """Section A — public-facing business lookup."""
-    st.title("Colorado B.A.S.E. Subsidy Checker")
-    st.markdown(
-        "**Business Assistance for Security Enhancements (B.A.S.E.)** helps Colorado "
-        "business owners offset the cost of security improvements. Enter your "
-        "business name or Colorado Secretary of State entity ID below to see "
-        "whether your business qualifies for a state security subsidy."
-    )
-
-    # A form batches the input so we do not query on every keystroke.
-    with st.form("business_search"):
-        search_term = st.text_input(
-            "Business name or entity ID",
-            placeholder="e.g. Mile High Hardware  or  20121234567",
-            help="Entity IDs are matched exactly. Names are matched case-insensitively.",
+        c3.metric(
+            "Businesses Scored",
+            f"{stats['total_businesses']:,}",
+            help="Colorado Secretary of State registered entities with assigned B.A.S.E. tier",
         )
-        submitted = st.form_submit_button("Search", type="primary")
-
-    if not submitted:
-        st.caption("Enter a business name or entity ID and select **Search** to begin.")
-        return
-
-    if not search_term.strip():
-        st.warning("Please enter a business name or entity ID to search.")
-        return
-
-    with st.spinner("Searching Colorado business records..."):
-        results = search_businesses(search_term)
-
-    if results is None or results.empty:
-        st.warning(
-            "Business not found. Check the spelling of the business name, or try "
-            "searching by your Colorado Secretary of State entity ID."
+        c4.metric(
+            "Years of Data",
+            f"{stats['years_of_data']} yrs",
+            f"{stats['year_min']}-{stats['year_max']}",
+            help="Longitudinal crime and socioeconomic data",
         )
-        return
+    except Exception as e:
+        st.warning(f"Could not load live stats — check Snowflake connection. ({e})")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Crime Incidents Processed", "9,048,771")
+        c2.metric("Counties Analyzed", "64")
+        c3.metric("Businesses Scored", "3.1M+")
+        c4.metric("Years of Data", "23 yrs", "1997-2020")
 
-    truncated = len(results) > MAX_NAME_MATCHES
-    if truncated:
-        results = results.head(MAX_NAME_MATCHES)
+st.divider()
 
-    if len(results) == 1:
-        render_single_result(results.iloc[0])
-        return
+# ---------------------------------------------------------------------------
+# The data narrative
+# ---------------------------------------------------------------------------
 
-    # Multiple name matches — let the user narrow it down themselves.
-    st.info(
-        f"Found {len(results)} matching businesses"
-        + (f" (showing the first {MAX_NAME_MATCHES})" if truncated else "")
-        + ". Search again using the exact entity ID for a full eligibility report."
-    )
-    st.dataframe(
-        results[
-            [
-                "ENTITY_ID",
-                "ENTITY_NAME",
-                "PRINCIPAL_CITY",
-                "PRINCIPAL_COUNTY",
-                "ENTITY_TYPE",
-                "SUBSIDY_TIER_LABEL",
-                "QUALIFIES_FOR_SUBSIDY",
-            ]
-        ],
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "ENTITY_ID": st.column_config.TextColumn("Entity ID"),
-            "ENTITY_NAME": st.column_config.TextColumn("Business name"),
-            "PRINCIPAL_CITY": st.column_config.TextColumn("City"),
-            "PRINCIPAL_COUNTY": st.column_config.TextColumn("County"),
-            "ENTITY_TYPE": st.column_config.TextColumn("Type"),
-            "SUBSIDY_TIER_LABEL": st.column_config.TextColumn("Subsidy tier"),
-            "QUALIFIES_FOR_SUBSIDY": st.column_config.CheckboxColumn("Qualifies"),
-        },
-    )
+st.subheader("The Data Narrative")
+st.markdown(
+    "This portal tells a five-act story about crime, inequality, and intervention "
+    "across Colorado — from raw incident data to a subsidy program that targets "
+    "resources where they're needed most."
+)
 
+acts = [
+    ("🗺️", "Act 1 — The Landscape", "Where is crime happening across Colorado's 64 counties?"),
+    ("📊", "Act 2 — The Patterns", "When does crime peak — by season, day of week, and hour?"),
+    (
+        "💰",
+        "Act 3 — The Disparity",
+        "How do income and population growth correlate with crime rates?",
+    ),
+    (
+        "🏢",
+        "Act 4 — The Solution",
+        "The B.A.S.E. subsidy program: composite scoring across 3.1M businesses.",
+    ),
+    ("🎯", "Act 5 — The Impact", "Measurable targets: every agency gets a crime reduction goal."),
+]
 
-def render_admin_view() -> None:
-    """Section B — aggregated view for OEDIT grant officers."""
-    header, refresh = st.columns([4, 1], vertical_alignment="bottom")
-    with header:
-        st.title("OEDIT Admin")
+cols = st.columns(len(acts))
+for col_obj, (icon, title, desc) in zip(cols, acts, strict=False):
+    with col_obj:
         st.markdown(
-            "Aggregated outreach view for grant officers. Counts reflect businesses "
-            "that are active **and** qualify for a subsidy "
-            "(`NOTIFICATION_ELIGIBLE`)."
-        )
-    with refresh:
-        # Cached aggregates have a 15m TTL; this forces an immediate refresh.
-        st.button(
-            "Refresh data",
-            icon=":material/refresh:",
-            on_click=clear_admin_caches,
-            width="stretch",
-        )
-
-    with st.spinner("Loading eligibility totals..."):
-        eligible_total = load_eligible_total()
-        county_counts = load_eligible_by_county()
-        tier_counts = load_tier_breakdown()
-
-    metric_a, metric_b, metric_c = st.columns(3)
-    metric_a.metric("Notification-eligible businesses", f"{eligible_total:,}")
-    metric_b.metric("Counties with eligible businesses", f"{len(county_counts):,}")
-    top_county = county_counts.iloc[0]["PRINCIPAL_COUNTY"] if not county_counts.empty else "—"
-    metric_c.metric("Highest-need county", top_county)
-
-    st.divider()
-
-    st.subheader("Eligible businesses by county")
-    if county_counts.empty:
-        st.info("No notification-eligible businesses found.")
-    else:
-        st.bar_chart(
-            county_counts,
-            x="PRINCIPAL_COUNTY",
-            y="ELIGIBLE_BUSINESSES",
-            x_label="County",
-            y_label="Eligible businesses",
-        )
-        with st.expander("View county counts as a table"):
-            st.dataframe(
-                county_counts,
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "PRINCIPAL_COUNTY": st.column_config.TextColumn("County"),
-                    "ELIGIBLE_BUSINESSES": st.column_config.NumberColumn(
-                        "Eligible businesses", format="%d"
-                    ),
-                },
-            )
-
-    st.divider()
-
-    st.subheader("Statewide tier distribution")
-    if tier_counts.empty:
-        st.info("No tier data available.")
-    else:
-        st.dataframe(
-            tier_counts,
-            width="stretch",
-            hide_index=True,
-            column_config={
-                "COMPOSITE_TIER": st.column_config.NumberColumn("Tier", format="%d"),
-                "SUBSIDY_TIER_LABEL": st.column_config.TextColumn("Label"),
-                "BUSINESSES": st.column_config.NumberColumn("Businesses", format="%d"),
-            },
+            f"""
+            <div style="
+                background: #161B22;
+                border: 1px solid #30363D;
+                border-top: 3px solid #FF6B35;
+                border-radius: 8px;
+                padding: 16px;
+                height: 140px;
+            ">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">{icon}</div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: #E6EDF3; margin-bottom: 6px;">{title}</div>
+                <div style="font-size: 0.78rem; color: #8B949E;">{desc}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
+st.divider()
 
 # ---------------------------------------------------------------------------
-# Layout
+# AI + Semantic layer features
 # ---------------------------------------------------------------------------
 
-# on_change="rerun" makes the tabs dynamic so only the visible tab queries Snowflake.
-public_tab, admin_tab = st.tabs(
-    ["Subsidy Lookup", "OEDIT Admin"],
-    on_change="rerun",
+col_a, col_b = st.columns(2)
+
+with col_a:
+    st.markdown(
+        """
+        <div style="
+            background: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 10px;
+            padding: 20px 24px;
+        ">
+            <div style="font-size: 1.4rem; margin-bottom: 8px;">💬</div>
+            <div style="font-weight: 700; font-size: 1rem; color: #E6EDF3; margin-bottom: 8px;">
+                Ask the Data
+            </div>
+            <div style="font-size: 0.85rem; color: #8B949E; line-height: 1.6;">
+                Natural language querying powered by <strong style="color:#FF6B35">Snowflake Cortex Analyst</strong>.
+                Ask any question about Colorado crime, income, or subsidies —
+                the AI translates it to SQL grounded by your semantic model.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_b:
+    st.markdown(
+        """
+        <div style="
+            background: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 10px;
+            padding: 20px 24px;
+        ">
+            <div style="font-size: 1.4rem; margin-bottom: 8px;">🔮</div>
+            <div style="font-weight: 700; font-size: 1rem; color: #E6EDF3; margin-bottom: 8px;">
+                Semantic Layer
+            </div>
+            <div style="font-size: 0.85rem; color: #8B949E; line-height: 1.6;">
+                Metrics defined once in <strong style="color:#FF6B35">dbt MetricFlow</strong> and
+                materialized as Snowflake Semantic Views — powering dashboards,
+                BI tools, and AI from a single source of truth.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.divider()
+
+# ---------------------------------------------------------------------------
+# Tech stack footer
+# ---------------------------------------------------------------------------
+
+st.markdown(
+    """
+    <div style="color: #8B949E; font-size: 0.78rem; line-height: 2;">
+        <strong style="color: #E6EDF3;">Pipeline:</strong>
+        Apache Airflow (Astronomer) · AWS S3 · Snowflake · dbt-core · Terraform &nbsp;|&nbsp;
+        <strong style="color: #E6EDF3;">Modeling:</strong>
+        Kimball Star Schema · Medallion Architecture · SCD Type 2 · MetricFlow &nbsp;|&nbsp;
+        <strong style="color: #E6EDF3;">Presentation:</strong>
+        Streamlit · Plotly · Metabase · Snowflake Cortex Analyst
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
-
-if public_tab.open is not False:
-    with public_tab:
-        render_public_lookup()
-
-if admin_tab.open:
-    with admin_tab:
-        render_admin_view()
