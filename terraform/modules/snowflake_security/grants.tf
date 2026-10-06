@@ -120,3 +120,35 @@ resource "snowflake_grant_ownership" "transformer_owns_gold_views" {
   outbound_privileges = "COPY"
   depends_on          = [snowflake_grant_privileges_to_account_role.transformer_gold]
 }
+
+# ── RAW SCHEMA OWNERSHIP GRANTS ──────────────────────────────────────────────────
+# dbt staging models are materialised as VIEWS in the RAW schema
+# (dbt_project.yml: staging +schema: raw).
+# If a previous pipeline run created these views under LOADER_ROLE, TRANSFORMER_ROLE
+# cannot issue CREATE OR REPLACE VIEW on them without OWNERSHIP.
+# Granting OWNERSHIP here ensures dbt can always rebuild staging views regardless
+# of which role originally created them.
+
+resource "snowflake_grant_ownership" "transformer_owns_raw_tables" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    all {
+      object_type_plural = "TABLES"
+      in_schema          = "\"${var.db_name}\".\"${var.raw_schema_name}\""
+    }
+  }
+  outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_raw]
+}
+
+resource "snowflake_grant_ownership" "transformer_owns_raw_views" {
+  account_role_name = snowflake_account_role.transformer_role.name
+  on {
+    all {
+      object_type_plural = "VIEWS"
+      in_schema          = "\"${var.db_name}\".\"${var.raw_schema_name}\""
+    }
+  }
+  outbound_privileges = "COPY"
+  depends_on          = [snowflake_grant_privileges_to_account_role.transformer_raw]
+}
