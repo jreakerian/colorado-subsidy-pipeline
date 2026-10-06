@@ -80,17 +80,21 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
     cfg = st.secrets["connections"]["snowflake"]
     account = cfg["account"]  # e.g. "ZCELBQO-HNB09831"
     user = cfg["user"]
-    pk_path = cfg["private_key_file"]
     pk_pass = cfg.get("private_key_passphrase", "")
 
     host = account.lower() + ".snowflakecomputing.com"
 
+    if "private_key" in cfg:
+        pem_bytes = cfg["private_key"].encode("utf-8")
+    else:
+        with open(cfg["private_key_file"], "rb") as f:
+            pem_bytes = f.read()
+
     # Load RSA private key
-    with open(pk_path, "rb") as f:
-        private_key = load_pem_private_key(
-            f.read(),
-            password=pk_pass.encode() if pk_pass else None,
-        )
+    private_key = load_pem_private_key(
+        pem_bytes,
+        password=pk_pass.encode() if pk_pass else None,
+    )
 
     # SHA-256 fingerprint of the PUBLIC key (DER encoded)
     pub_der = private_key.public_key().public_bytes(
