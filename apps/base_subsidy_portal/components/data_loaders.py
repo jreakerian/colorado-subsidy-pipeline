@@ -65,7 +65,7 @@ MAX_NAME_MATCHES = 100
 # ---------------------------------------------------------------------------
 
 
-@st.cache_resource
+@st.cache_resource(ttl=7200)  # 2-hour TTL — refreshes before Snowflake token expires
 def get_session() -> Session:
     """
     Build a Snowpark session using RSA key-pair auth.
@@ -73,6 +73,10 @@ def get_session() -> Session:
     Supports two modes:
       1. Streamlit Cloud / SiS: secrets contain `private_key` PEM string
       2. Local dev: secrets contain `private_key_file` path to .pem
+
+    The cache TTL is intentionally set to 2 hours so that Streamlit drops
+    the cached session before the underlying Snowflake authentication token
+    expires (which causes a SnowparkSQLException 390114 / 08001).
     """
     sf = st.secrets["connections"]["snowflake"]
 
