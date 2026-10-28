@@ -1,189 +1,88 @@
 """
 business_entity_helpers.py
 ===========================
-All business logic for the Colorado Business Entity ingestion pipeline.
+All ingestion and failure-handling logic for the Colorado Business Entity pipeline.
 
-Deliberately decoupled from Airflow primitives so every function here
-can be unit-tested in isolation without a running Airflow environment.
-
-Architecture alignment
-----------------------
-This project uses dbt + Snowflake.  The Airflow DAG (business_entity_dag_v2.py)
-is the *ingestion* layer; dbt is the *transformation* layer.
-
-Landing strategy (bronze-first):
-  1. API → colorado_business_entities_raw   (RAW_DEV schema — permanent, append-only)
-  2. raw → staging table (date-suffixed)    (transformation & enrichment)
-  3. staging → production table             (clean, deduplicated, county-enriched)
-
-The raw table sits in the same Snowflake database/schema that dbt's
-source('bronze', ...) already points to (SNOWFLAKE_CATALOG / RAW_DEV).
-
-NOTE FOR dbt MAINTAINERS
--------------------------
-Add the following entry to dbt_project/models/staging/src_bronze.yml
-under the existing 'bronze' source, then create a corresponding staging model:
-
-    - name: colorado_business_entities_raw
-      description: >
-        Append-only raw API responses from data.colorado.gov.
-        Each row represents one business entity returned by the API on a given
-        ingestion date. Use _source_date to partition queries by logical date.
-        Cast / clean columns in the dbt staging model — never here.
-
-Dependencies
-------------
-  pip install apache-airflow-providers-snowflake requests
+Deliberately decoupled from top-level Airflow imports so every function can be
+unit-tested in isolation and imported without slowing down DAG parsing.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+import os
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 
 log = logging.getLogger(__name__)
 
-
-# ── Snowflake helpers ──────────────────────────────────────────────────────────
-
-
-def execute_sf_query(
-    query: str,
-    conn_id: str = "snowflake_default",
-    parameters: tuple | list | None = None,
-    return_results: bool = False,
-) -> list:
-    """Execute a SQL statement against Snowflake via the Airflow SnowflakeHook.
-
-    Uses the connection configured in Airflow (Admin → Connections → snowflake_default).
-    Credentials never touch the DAG file or environment variables directly.
-
-    Args:
-        query:          SQL string to execute.
-        conn_id:        Airflow Snowflake connection ID.
-        parameters:     Optional bind parameters for safe value substitution.
-        return_results: When True, fetches and returns all result rows.
-
-    Returns:
-        List of row tuples when return_results=True, otherwise [].
-    """
-    # Import inside function so this module is importable outside Airflow for testing
-    from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
-
-    hook = SnowflakeHook(snowflake_conn_id=conn_id)
-    conn = hook.get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(query, parameters or ())
-            if return_results and cur.description:
-                return cur.fetchall()
-        conn.commit()
-        return []
-    finally:
-        conn.close()
-
-
-def execute_sf_many(
-    query: str,
-    rows: list[tuple],
-    conn_id: str = "snowflake_default",
-) -> None:
-    """Bulk-insert rows using executemany with bind parameters.
-
-    This is the safe alternative to building INSERT statements via string
-    interpolation.  Snowflake's Python connector handles quoting and escaping.
-
-    Args:
-        query:   INSERT statement with %s placeholders matching the tuple length.
-        rows:    List of value tuples — one per row to insert.
-        conn_id: Airflow Snowflake connection ID.
-    """
-    if not rows:
-        log.info("execute_sf_many: 0 rows provided — skipping.")
-        return
-
-    from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
-
-    hook = SnowflakeHook(snowflake_conn_id=conn_id)
-    conn = hook.get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.executemany(query, rows)
-        conn.commit()
-        log.info("Bulk-inserted %d rows.", len(rows))
-    finally:
-        conn.close()
+SOCRATA_ENDPOINT = "https://data.colorado.gov/resource/4ykn-tg5h.json"
+SOCRATA_PAGE_SIZE = 5000  # Socrata SODA 2.1 max limit is 50,000; 5,000 is safe per page
 
 
 # ── API: data.colorado.gov ─────────────────────────────────────────────────────
 
 
 def fetch_business_entity_data(date: str, api_token: str) -> list[dict]:
-    """Fetch business entity records for a given date from data.colorado.gov.
+    """Fetch all business entity records for a given date from data.colorado.gov.
 
-    Raises on non-200 responses so Airflow can trigger task retries.
-
-    Args:
-        date:      Logical execution date string in YYYY-MM-DD format.
-        api_token: Socrata app token stored as an Airflow Variable.
-
-    Returns:
-        List of raw record dicts exactly as returned by the API.
-        Returns [] when the API returns an empty payload.
+    Handles Socrata pagination ($limit / $offset) so busy days exceeding 1,000
+    registrations are never silently truncated, and passes the app token via
+    HTTP header so secrets never leak into URL logs.
     """
     log.info("Fetching Colorado business entity records for %s", date)
 
     formatted_date = f"{date}T00:00:00.000"
-    url = (
-        f"https://data.colorado.gov/resource/4ykn-tg5h.json"
-        f"?$$app_token={api_token}"
-        f"&entityformdate={formatted_date}"
-        f"&principalstate=CO"
-    )
+    headers = {"X-App-Token": api_token} if api_token else {}
+    all_records: list[dict] = []
+    offset = 0
 
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()  # raises HTTPError on 4xx / 5xx
-    except requests.RequestException as exc:
-        log.error("API request failed for date=%s: %s", date, exc)
-        raise  # re-raise so Airflow retries the task
+    with requests.Session() as session:
+        session.headers.update(headers)
+        while True:
+            params = {
+                "entityformdate": formatted_date,
+                "principalstate": "CO",
+                "$limit": SOCRATA_PAGE_SIZE,
+                "$offset": offset,
+                "$order": "entityid ASC",  # Deterministic ordering for pagination
+            }
+            try:
+                response = session.get(SOCRATA_ENDPOINT, params=params, timeout=30)
+                response.raise_for_status()
+            except requests.RequestException as exc:
+                log.error(
+                    "API request failed for date=%s (offset=%d): %s",
+                    date,
+                    offset,
+                    exc,
+                )
+                raise
 
-    data = response.json()
-    if not data:
-        log.info("API returned 0 records for %s", date)
-        return []
+            batch = response.json()
+            if not batch:
+                break
 
-    log.info("API returned %d records for %s", len(data), date)
-    return data
+            all_records.extend(batch)
+            log.info(
+                "Fetched batch of %d records (total so far: %d)",
+                len(batch),
+                len(all_records),
+            )
 
+            # If we received fewer records than the page size, we've reached the last page
+            if len(batch) < SOCRATA_PAGE_SIZE:
+                break
+            offset += SOCRATA_PAGE_SIZE
 
-def _raw_record_to_tuple(record: dict, source_date: str) -> tuple:
-    """Map one raw API dict to a tuple matching the bronze landing table columns.
-
-    Field order must stay in sync with the INSERT in land_raw_records().
-    All values are kept as-is (strings) — no type coercion at the raw layer.
-    """
-    return (
-        record.get("entityid"),
-        record.get("entityname"),
-        record.get("principaladdress1"),
-        record.get("principaladdress2"),
-        record.get("principalcity"),
-        record.get("principalstate"),
-        record.get("principalzipcode"),
-        record.get("principalcountry"),
-        record.get("entitystatus"),
-        record.get("jurisdictonofformation"),
-        record.get("entitytype"),
-        record.get("entityformdate"),
-        datetime.now(UTC),  # _ingested_at: pipeline audit timestamp
-        source_date,  # _source_date: logical execution date (YYYY-MM-DD)
-    )
+    log.info("API returned %d total records for %s", len(all_records), date)
+    return all_records
 
 
-# ── Bronze landing ─────────────────────────────────────────────────────────────
+# ── Bronze landing (S3 Parquet -> Snowflake External Stage) ────────────────────
 
 
 def land_raw_records(
@@ -191,69 +90,76 @@ def land_raw_records(
     raw_table: str,
     source_date: str,
     conn_id: str = "snowflake_default",
+    aws_conn_id: str = "aws_default",
 ) -> None:
-    """Write raw API records into the append-only bronze landing table.
+    """Serialize raw API records to Parquet, upload to S3, and idempotently COPY INTO Snowflake.
 
-    This is the ONLY step that calls the external API.  All downstream
-    transformation and enrichment steps read from this table, making them
-    fully idempotent — re-runnable without re-hitting the API.
-
-    Bronze design principles applied here:
-      - No type coercion (entityformdate stays VARCHAR)
-      - No filtering beyond what the API already filters
-      - Partition metadata (_source_date) appended for efficient pruning
-      - Append-only: no UPDATE or DELETE on this table
-
-    Args:
-        raw_records: Unmodified list of dicts from fetch_business_entity_data().
-        raw_table:   Fully-qualified Snowflake table name.
-        source_date: Logical execution date (YYYY-MM-DD) stored as _source_date.
-        conn_id:     Airflow Snowflake connection ID.
+    Idempotency guarantee:
+    - Deletes any existing Bronze records for `source_date` and runs `COPY INTO` with
+      `FORCE = TRUE` inside a single Snowflake transaction so retries and backfills
+      never duplicate data or get skipped by Snowflake's 64-day load metadata cache.
     """
     if not raw_records:
-        log.info("No raw records to land for %s — skipping.", source_date)
+        log.info("No raw records to land for %s — skipping S3 upload and COPY.", source_date)
         return
 
-    import os
-
     import pandas as pd
+    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
-    # Add metadata
-    ingested_at = datetime.now(UTC).isoformat()
-    for r in raw_records:
-        r["_ingested_at"] = ingested_at
-        r["_source_date"] = source_date
+    ingested_at = datetime.now(timezone.utc).isoformat()
+    # Build new dicts rather than mutating the input list in-place
+    enriched_records = [
+        {**record, "_ingested_at": ingested_at, "_source_date": source_date}
+        for record in raw_records
+    ]
 
-    # Write to Parquet
-    df = pd.DataFrame(raw_records)
-    parquet_file = f"/tmp/business_entities_{source_date}.parquet"
-    df.to_parquet(parquet_file, index=False)
-
-    # Upload to S3
+    df = pd.DataFrame(enriched_records)
     s3_bucket = os.getenv("S3_BUCKET_NAME", "colorado-subsidy-pipeline-data-dev")
     s3_key = f"raw/colorado_business_entities/source_date={source_date}/data.parquet"
-    from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
-    # Upload to S3 via Airflow's aws_default connection (honours IAM/key auth
-    # configured in the Airflow UI rather than relying on env vars or ~/.aws/).
-    aws_hook = AwsBaseHook(aws_conn_id="aws_default", client_type="s3")
-    s3_client = aws_hook.get_client_type()
-    s3_client.upload_file(parquet_file, s3_bucket, s3_key)
-    log.info("Uploaded to S3: s3://%s/%s", s3_bucket, s3_key)
+    # Use a temporary file context manager so worker /tmp storage is always cleaned up
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=True) as tmp_file:
+        parquet_path = Path(tmp_file.name)
+        df.to_parquet(parquet_path, index=False)
 
-    # COPY INTO Snowflake from the external S3 stage.
-    # Using the relative stage path so the database context is resolved by
-    # SnowflakeHook from the connection, not hardcoded here.
-    copy_sql = f"""
-        COPY INTO {raw_table}
-        FROM @"RAW"."RAW_CSV_STAGE"/{s3_key}
-        FILE_FORMAT = (TYPE = PARQUET)
-        MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
-    """
-    execute_sf_query(copy_sql, conn_id=conn_id)
+        s3_hook = S3Hook(aws_conn_id=aws_conn_id)
+        s3_hook.load_file(
+            filename=parquet_path,
+            key=s3_key,
+            bucket_name=s3_bucket,
+            replace=True,
+        )
+        log.info("Uploaded Parquet to s3://%s/%s", s3_bucket, s3_key)
+
+    # Atomic Delete + COPY INTO inside a single transaction
+    sf_hook = SnowflakeHook(snowflake_conn_id=conn_id)
+    with sf_hook.get_conn() as conn, conn.cursor() as cur:
+        cur.execute("BEGIN")
+        try:
+            # 1. Clear partial/previous loads for this logical date
+            cur.execute(
+                f"DELETE FROM {raw_table} WHERE _source_date = %(source_date)s",
+                {"source_date": source_date},
+            )
+            # 2. Load from S3 with FORCE = TRUE so re-runs aren't ignored by load history
+            cur.execute(
+                f"""
+                COPY INTO {raw_table}
+                FROM @"RAW"."RAW_CSV_STAGE"/{s3_key}
+                FILE_FORMAT = (TYPE = PARQUET)
+                MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
+                FORCE = TRUE
+                """
+            )
+            cur.execute("COMMIT")
+        except Exception:
+            cur.execute("ROLLBACK")
+            raise
+
     log.info(
-        "Landed %d raw records into %s (source_date=%s) via COPY INTO",
-        len(raw_records),
+        "Idempotently landed %d raw records into %s (source_date=%s)",
+        len(enriched_records),
         raw_table,
         source_date,
     )
@@ -263,36 +169,20 @@ def land_raw_records(
 
 
 def on_dag_failure(context: dict) -> None:
-    """DAG-level on_failure_callback — replace with your alerting integration.
-
-    Current behaviour: structured log at ERROR level so the message surfaces
-    in your log aggregator (CloudWatch, Datadog, etc.) even before you wire
-    up a real channel.
-
-    TODO: swap one of the blocks below for your stack:
-
-        # Slack (requires airflow-providers-slack):
-        from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
-        SlackWebhookHook(slack_webhook_conn_id="slack_default").send(
-            text=f":red_circle: *DAG FAILED* `{dag_id}` — task `{task_id}` | run `{run_id}`"
-        )
-
-        # Email:
-        from airflow.utils.email import send_email
-        send_email(
-            to=["data-team@example.com"],
-            subject=f"[Airflow] DAG FAILED: {dag_id}",
-            html_content=f"<b>Failed task:</b> {task_id}<br><b>Run:</b> {run_id}",
-        )
-    """
-    dag_id = context.get("dag").dag_id
+    """Task-level failure callback — logs structured error context for aggregators."""
+    dag_obj = context.get("dag")
+    dag_id = dag_obj.dag_id if dag_obj else "unknown"
     run_id = context.get("run_id", "unknown")
-    task_instance = context.get("task_instance")
-    task_id = task_instance.task_id if task_instance else "unknown"
+    ti = context.get("task_instance")
+    task_id = ti.task_id if ti else "unknown"
+    try_number = ti.try_number if ti else "unknown"
+    exception = context.get("exception", "No exception captured")
 
     log.error(
-        "DAG FAILURE | dag_id=%s | run_id=%s | failed_task=%s",
+        "PIPELINE FAILURE | dag_id=%s | task_id=%s | run_id=%s | try=%s | error=%s",
         dag_id,
-        run_id,
         task_id,
+        run_id,
+        try_number,
+        exception,
     )

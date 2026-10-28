@@ -1,20 +1,25 @@
 -- merge_new_to_production.sql
 --
--- Purpose : Write-once deduplication gate between the bronze raw table
+-- Purpose : Idempotent deduplication gate between the bronze raw table
 --           and the production source table that dbt reads from.
 --
--- Placeholders replaced by the Airflow task at runtime:
---   {raw_table}   → e.g. RAW.colorado_business_entities_raw
---   {prod_table}  → e.g. RAW.colorado_business_entities
---   {yesterday}   → YYYY-MM-DD injected via {{ ds }} macro
+-- Executed by SQLExecuteQueryOperator (airflow.providers.common.sql).
+-- Table names are injected via Jinja params (safe for identifiers):
+--   {{ params.raw_table }}   → e.g. RAW.colorado_business_entities_raw
+--   {{ params.prod_table }}  → e.g. RAW.colorado_business_entities
+-- The partition date is passed as a DB-API bind parameter (prevents SQL injection):
+--   %(target_date)s          → YYYY-MM-DD value from the run's data interval
 --
--- NOTE: _ingested_at and _source_date are metadata columns that live ONLY
--- in the bronze raw table. The production table (which dbt reads from) holds
--- only the business entity fields — no pipeline metadata columns.
+-- Deduplication strategy:
+--   QUALIFY ROW_NUMBER() OVER (PARTITION BY entityid ORDER BY _ingested_at DESC) = 1
+--   picks the most-recently ingested record when the same entityid appears more
+--   than once in a partition (e.g. duplicate API responses on a retry).
+--   This is strictly superior to SELECT DISTINCT which cannot resolve conflicts
+--   when two rows differ only in a non-key field.
 
-MERGE INTO {prod_table} AS target
+MERGE INTO {{ params.prod_table }} AS target
 USING (
-    SELECT DISTINCT
+    SELECT
         entityid,
         entityname,
         principaladdress1,
@@ -26,10 +31,15 @@ USING (
         entitystatus,
         jurisdictonofformation,
         entitytype,
-        entityformdate
-    FROM {raw_table}
-    WHERE _source_date = '{yesterday}'
+        entityformdate,
+        _source_date
+    FROM {{ params.raw_table }}
+    WHERE _source_date = %(target_date)s
       AND entityid IS NOT NULL          -- guard: skip rows with no natural key
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY entityid
+        ORDER BY _ingested_at DESC      -- latest ingestion wins on duplicates
+    ) = 1
 ) AS source
 ON target.entityid = source.entityid   -- raw string comparison; dbt casts downstream
 WHEN NOT MATCHED THEN
@@ -63,14 +73,14 @@ WHEN NOT MATCHED THEN
     )
 WHEN MATCHED THEN
     UPDATE SET
-        target.entityname            = source.entityname,
-        target.principaladdress1     = source.principaladdress1,
-        target.principaladdress2     = source.principaladdress2,
-        target.principalcity         = source.principalcity,
-        target.principalstate        = source.principalstate,
-        target.principalzipcode      = source.principalzipcode,
-        target.principalcountry      = source.principalcountry,
-        target.entitystatus          = source.entitystatus,
+        target.entityname             = source.entityname,
+        target.principaladdress1      = source.principaladdress1,
+        target.principaladdress2      = source.principaladdress2,
+        target.principalcity          = source.principalcity,
+        target.principalstate         = source.principalstate,
+        target.principalzipcode       = source.principalzipcode,
+        target.principalcountry       = source.principalcountry,
+        target.entitystatus           = source.entitystatus,
         target.jurisdictonofformation = source.jurisdictonofformation,
-        target.entitytype            = source.entitytype,
-        target.entityformdate        = source.entityformdate;
+        target.entitytype             = source.entitytype,
+        target.entityformdate         = source.entityformdate;
