@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -107,7 +107,7 @@ def land_raw_records(
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
-    ingested_at = datetime.now(timezone.utc).isoformat()
+    ingested_at = datetime.now(UTC).isoformat()
     # Build new dicts rather than mutating the input list in-place
     enriched_records = [
         {**record, "_ingested_at": ingested_at, "_source_date": source_date}

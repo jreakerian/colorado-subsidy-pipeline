@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # ── Standard library ──────────────────────────────────────────────────────────
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from airflow.providers.common.sql.operators.sql import (
@@ -113,7 +113,7 @@ def on_task_failure(context: dict) -> None:
         "execution_timeout": timedelta(hours=1),
         **_DEFAULT_RETRY_ARGS,
     },
-    start_date=datetime(2026, 10, 4, tzinfo=timezone.utc),
+    start_date=datetime(2026, 10, 4, tzinfo=UTC),
     max_active_runs=1,
     schedule="0 13 * * *",  # 1 PM UTC ≈ 7 AM MT
     catchup=False,
