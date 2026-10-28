@@ -39,7 +39,7 @@ Dependencies
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
@@ -178,7 +178,7 @@ def _raw_record_to_tuple(record: dict, source_date: str) -> tuple:
         record.get("jurisdictonofformation"),
         record.get("entitytype"),
         record.get("entityformdate"),
-        datetime.now(timezone.utc),  # _ingested_at: pipeline audit timestamp
+        datetime.now(UTC),  # _ingested_at: pipeline audit timestamp
         source_date,  # _source_date: logical execution date (YYYY-MM-DD)
     )
 
@@ -219,7 +219,7 @@ def land_raw_records(
     import pandas as pd
 
     # Add metadata
-    ingested_at = datetime.now(timezone.utc).isoformat()
+    ingested_at = datetime.now(UTC).isoformat()
     for r in raw_records:
         r["_ingested_at"] = ingested_at
         r["_source_date"] = source_date

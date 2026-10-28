@@ -105,7 +105,7 @@ def _get_host_and_token(session: Session) -> tuple[str, str, str]:
 
     # JWT payload — Snowflake expects ACCOUNT.USER (uppercase)
     qualified = f"{account.upper()}.{user.upper()}"
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     payload = {
         "iss": f"{qualified}.{fingerprint}",
         "sub": qualified,
