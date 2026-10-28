@@ -75,7 +75,7 @@ _execution_config = ExecutionConfig(
 
 _manifest_path = _DBT_PROJECT_DIR / "target" / "manifest.json"
 _render_config = RenderConfig(
-    select=["stg_colorado_business_entities+"],
+    select=["stg_snapshot_colorado_business_entities+"],
     # Parse-time optimization: read static JSON manifest instead of running dbt CLI
     load_method=LoadMode.DBT_MANIFEST if _manifest_path.exists() else LoadMode.AUTOMATIC,
 )
